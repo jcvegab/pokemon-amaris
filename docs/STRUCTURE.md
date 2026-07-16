@@ -1,8 +1,10 @@
-# PLAN — STRUCTURE
+# STRUCTURE — base del monorepo
 
 ## 1. Objetivo
 
-Definir la base del monorepo, gestor de paquetes, organización de carpetas, herramientas comunes y convenciones de desarrollo que serán consumidas por `BACKEND.md`, `FRONTEND.md` y `CI.md`.
+Definir la base del monorepo, gestor de paquetes, organización de
+carpetas, herramientas comunes y convenciones de desarrollo que son
+consumidas por `BACKEND.md`, `FRONTEND.md` y `CI.md`.
 
 ## 2. Decisiones de plataforma
 
@@ -19,16 +21,21 @@ Definir la base del monorepo, gestor de paquetes, organización de carpetas, her
 | Ramas                  | `trunk-based` con PRs cortos                                                                                                 |
 | Prioridad de versiones | Actualizar a versiones estables compatibles si las del enunciado no existen o no son compatibles; registrar el cambio en ADR |
 
+> TypeScript 6.x se aplica como piso común, pero `apps/frontend`
+> consume `typescript@^6.0.0` y el workspace raíz fija
+> `typescript@^5.7.2` (constraint histórico). Cualquier divergencia se
+> justifica en el ADR correspondiente.
+
 ## 3. Layout del monorepo
 
-```
+```text
 pokemon-amaris/
 ├── apps/
 │   ├── backend/                # NestJS 11 (ver BACKEND.md)
 │   └── frontend/               # React 19 + Vite + Tailwind 4 (ver FRONTEND.md)
 ├── docs/
 │   ├── adr/                    # Architecture Decision Records
-│   └── diagrams/               # Fuentes de diagramas
+│   └── diagrams/               # Fuentes de diagramas (placeholder)
 ├── .github/
 │   └── workflows/              # Pipelines (ver CI.md)
 ├── .editorconfig
@@ -43,6 +50,9 @@ pokemon-amaris/
 ├── README.md
 └── DEFINITION.md
 ```
+
+`docs/diagrams/` mantiene el lugar reservado; los `.mmd` se generan
+en Fase 6 (no se versionan todavía).
 
 ## 4. `package.json` raíz
 
@@ -63,6 +73,7 @@ pokemon-amaris/
     "test": "pnpm -r run test",
     "test:cov": "pnpm -r run test:cov",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
     "prepare": "husky",
   },
 }
@@ -96,23 +107,40 @@ packages:
 }
 ```
 
-Cada aplicación extiende este `tsconfig.base.json` y agrega su `include` propio.
+Cada aplicación extiende este `tsconfig.base.json` y agrega su
+`include` propio.
 
-> **Nota:** la versión de TypeScript es la 6.x estable. Ver `docs/adr/0001-monorepo-pnpm.md`.
+> **Nota:** la versión de TypeScript es la 6.x estable. Ver
+> `docs/adr/0001-monorepo-pnpm.md`.
 
 ## 7. Convenciones generales
 
-- **Naming**: `kebab-case` en carpetas y archivos, `PascalCase` en clases/componentes, `camelCase` en variables/funciones.
-- **Imports absolutos** dentro de cada app usando alias (`@/application`, `@/domain`, etc.).
+- **Naming**:
+  - `kebab-case` en carpetas y archivos por defecto.
+  - `PascalCase` en clases, componentes React, tipos exportados y
+    archivos que los definen (`Pokemon.ts`, `PokemonName.ts`,
+    `PokemonForm.tsx`).
+  - `camelCase` en variables y funciones.
+  - **Excepción documentada**: las carpetas de bounded context se
+    escriben en `PascalCase` (`Contexts/Pokemon`,
+    `Contexts/Shared`). Justificación en ADR `0009`.
+- **Imports**:
+  - Alias `@/...` está configurado en `apps/frontend/vite.config.ts`
+    y `apps/frontend/tsconfig.json`; el código actual usa imports
+    relativos entre archivos del mismo contexto. El alias queda
+    disponible para archivos cross-context y para código nuevo.
 - **Variables de entorno** validadas con `zod` en cada app.
-- **Errores**: capas de dominio lanzan errores tipados; infraestructura los traduce.
+- **Errores**: capas de dominio lanzan errores tipados; la
+  infraestructura los traduce.
 - **Logs**: `pino` con formato JSON; redactar secretos.
-- **Secretos**: nunca en repositorio; usar `.env.example` como plantilla.
-- **Tipos compartidos**: solo contratos DTO; nada de código ejecutable compartido.
+- **Secretos**: nunca en repositorio; usar `.env.example` como
+  plantilla.
+- **Tipos compartidos**: solo contratos DTO; nada de código
+  ejecutable compartido.
 
 ## 8. `.gitignore` mínimo
 
-```
+```text
 node_modules/
 dist/
 build/
@@ -158,14 +186,18 @@ VITE_API_BASE_URL=/api
 VITE_API_TIMEOUT_MS=8000
 ```
 
-`apps/backend` y `apps/frontend` validan su subconjunto con `zod` al arrancar.
+`apps/backend` y `apps/frontend` validan su subconjunto con `zod` al
+arrancar.
 
 > **Convenciones:**
 >
 > - `PORT` es la variable interna del backend (NestJS).
-> - Los puertos expuestos al host se definen en `docker-compose.yml` (no en `.env`).
-> - `VITE_API_BASE_URL=/api` permite que Vite dev server y Nginx prod hagan proxy hacia el backend sin CORS.
-> - `BACKEND_PORT` y `FRONTEND_PORT` del documento original quedan obsoletos.
+> - Los puertos expuestos al host se definen en `docker-compose.yml`
+>   (no en `.env`).
+> - `VITE_API_BASE_URL=/api` permite que Vite dev server y Nginx prod
+>   hagan proxy hacia el backend sin CORS.
+> - `BACKEND_PORT` y `FRONTEND_PORT` del documento original quedan
+>   obsoletos.
 
 ## 11. Convenciones de rama y PR
 
@@ -181,9 +213,12 @@ VITE_API_TIMEOUT_MS=8000
 - [ ] Convenciones aplicadas en ambas apps (alias, tsconfig, lint).
 - [ ] Husky y lint-staged activos.
 - [ ] `.env.example` versionado; ningún secreto real.
-- [ ] Documentos `BACKEND.md`, `FRONTEND.md`, `CI.md` y `DIAGRAM.md` creados en `docs/`.
-- [ ] Versiones de TypeScript, NestJS, Prisma y Vite son las últimas estables compatibles (ver `docs/adr/`).
-- [ ] Variables de entorno usan `PORT` (backend) y `VITE_API_BASE_URL=/api` (frontend).
+- [ ] Documentos `BACKEND.md`, `FRONTEND.md`, `CI.md` y `DIAGRAM.md`
+      creados en `docs/`.
+- [ ] Versiones de TypeScript, NestJS, Prisma y Vite son las últimas
+      estables compatibles (ver `docs/adr/`).
+- [ ] Variables de entorno usan `PORT` (backend) y
+      `VITE_API_BASE_URL=/api` (frontend).
 
 ## 13. Entregables
 

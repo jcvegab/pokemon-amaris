@@ -1,6 +1,6 @@
 # ADR 0006 — Coverage threshold 85% / 80%
 
-- **Status:** Accepted (stub; full content in Phase 2C)
+- **Status:** Accepted
 - **Source:** `docs/CI.md` §8, `docs/EXECUTION.md` §10
 
 ## Context
@@ -20,6 +20,14 @@ and fails CI if violated.
 - Frontend: enforced in `vitest.config.ts` via `coverage.thresholds`.
 - CI publishes the `coverage/` folder of each app as an artefact so
   reviewers can drill in.
+- Frontend exclusions (`apps/frontend/vitest.config.ts`):
+  - `src/main.tsx`: bootstrap de React.
+  - `src/app/**`: composition root + `App` (cableado manual, sin
+    lógica de negocio).
+  - `src/test-setup.ts`: registro de matchers de Testing Library.
+  - `src/**/*.d.ts`: declaraciones de tipos.
+  - `src/Contexts/Pokemon/ui/theme/**`: SVG y tokens visuales
+    (`Pokeball.tsx`, `PokemonBadge.tsx`, `tokens.ts`).
 
 ## Consequences
 
@@ -29,3 +37,8 @@ and fails CI if violated.
   switches, defensive `null` checks). Lines/statements/functions at
   85% catches real gaps.
 - Dropping below the threshold fails the job; no soft warnings.
+- El frontend mide la cobertura sobre los archivos productivos
+  (dominio, aplicación, infraestructura, UI lógica). Quedan fuera
+  los archivos puramente visuales y de cableado, que se prueban
+  manualmente o mediante tests de integración que ya cuentan para
+  la cobertura del hook, presenter y componentes.
