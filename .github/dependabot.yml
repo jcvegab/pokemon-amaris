@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+      timezone: America/Lima
+    open-pull-requests-limit: 5
+    groups:
+      node-workspace:
+        patterns:
+          - '*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:30'
+      timezone: America/Lima
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /apps/backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Lima
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /apps/frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:15'
+      timezone: America/Lima
+    open-pull-requests-limit: 5

@@ -1,0 +1,15 @@
+# Default owner for repository changes.
+* @jcvegab
+
+# Application ownership.
+/apps/backend/ @jcvegab
+/apps/frontend/ @jcvegab
+
+# CI/CD and infrastructure ownership.
+/.github/ @jcvegab
+/docker-compose.yml @jcvegab
+/apps/*/Dockerfile @jcvegab
+
+# Documentation ownership.
+/docs/ @jcvegab
+/README.md @jcvegab

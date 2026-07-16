@@ -1,0 +1,300 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 10.15.0
+
+jobs:
+  backend:
+    name: ci/backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint backend
+        run: pnpm --filter @pokemon-amaris/backend lint
+
+      - name: Test backend with coverage
+        run: pnpm --filter @pokemon-amaris/backend test:cov
+        env:
+          LOG_LEVEL: silent
+
+      - name: Build backend
+        run: pnpm --filter @pokemon-amaris/backend build
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage
+          if-no-files-found: error
+
+      - name: Upload backend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: apps/backend/dist
+          if-no-files-found: error
+
+  frontend:
+    name: ci/frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        run: pnpm --filter @pokemon-amaris/frontend lint
+
+      - name: Test frontend with coverage
+        run: pnpm --filter @pokemon-amaris/frontend test:cov
+
+      - name: Build frontend
+        run: pnpm --filter @pokemon-amaris/frontend build
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: apps/frontend/coverage
+          if-no-files-found: error
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: apps/frontend/dist
+          if-no-files-found: error
+
+  backend-openapi:
+    name: ci/backend-openapi
+    runs-on: ubuntu-latest
+    needs: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pokemon
+          POSTGRES_PASSWORD: pokemon
+          POSTGRES_DB: pokemon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pokemon -d pokemon"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 6
+    env:
+      DATABASE_URL: postgresql://pokemon:pokemon@localhost:5432/pokemon
+      PORT: 3000
+      POKEAPI_BASE_URL: https://pokeapi.co/api/v2
+      POKEAPI_TIMEOUT_MS: 5000
+      LOG_LEVEL: silent
+      NODE_ENV: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download backend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: apps/backend/dist
+
+      - name: Generate Prisma client
+        run: pnpm --filter @pokemon-amaris/backend prisma:generate
+
+      - name: Push Prisma schema
+        run: pnpm --filter @pokemon-amaris/backend prisma:push
+
+      - name: Start backend
+        run: |
+          node apps/backend/dist/main.js > backend.log 2>&1 &
+          echo $! > backend.pid
+
+      - name: Wait for OpenAPI endpoint
+        run: pnpm dlx wait-on --timeout 60000 http://localhost:3000/docs-json
+
+      - name: Save OpenAPI artifact
+        run: curl -fsS http://localhost:3000/docs-json -o openapi.json
+
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-openapi
+          path: openapi.json
+          if-no-files-found: error
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then
+            kill "$(cat backend.pid)" || true
+          fi
+
+      - name: Upload backend OpenAPI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-openapi-logs
+          path: backend.log
+          if-no-files-found: ignore
+
+  summary:
+    name: ci/summary
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+      - backend-openapi
+    if: always()
+    steps:
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-coverage'
+          path: coverage-artifacts
+          merge-multiple: false
+
+      - name: Extract coverage summary
+        shell: bash
+        run: |
+          coverage_line() {
+            local label="$1"
+            local file="$2"
+            if [ ! -f "$file" ]; then
+              printf '%s coverage unavailable' "$label"
+              return
+            fi
+            awk -F: -v label="$label" '
+              /^LH:/ { lh += $2 }
+              /^LF:/ { lf += $2 }
+              /^BRH:/ { bh += $2 }
+              /^BRF:/ { bf += $2 }
+              /^FNH:/ { fh += $2 }
+              /^FNF:/ { ff += $2 }
+              END {
+                lines = lf ? (lh / lf) * 100 : 0
+                branches = bf ? (bh / bf) * 100 : 0
+                funcs = ff ? (fh / ff) * 100 : 0
+                printf "%s lines %.2f%%, branches %.2f%%, functions %.2f%%", label, lines, branches, funcs
+              }
+            ' "$file"
+          }
+
+          {
+            echo "BACKEND_COVERAGE=$(coverage_line Backend coverage-artifacts/backend-coverage/lcov.info)"
+            echo "FRONTEND_COVERAGE=$(coverage_line Frontend coverage-artifacts/frontend-coverage/lcov.info)"
+          } >> "$GITHUB_ENV"
+
+      - name: Build summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          # CI Summary
+
+          | Check | Result |
+          | --- | --- |
+          | Backend | ${{ needs.backend.result }} |
+          | Frontend | ${{ needs.frontend.result }} |
+          | Backend OpenAPI | ${{ needs.backend-openapi.result }} |
+
+          ## Coverage
+
+          - ${BACKEND_COVERAGE}
+          - ${FRONTEND_COVERAGE}
+
+          Coverage artifacts are attached to this run.
+          OpenAPI JSON is attached as backend-openapi.
+          SUMMARY
+
+      - name: Comment PR summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '## CI Summary',
+              '',
+              '| Check | Result |',
+              '| --- | --- |',
+              '| Backend | ${{ needs.backend.result }} |',
+              '| Frontend | ${{ needs.frontend.result }} |',
+              '| Backend OpenAPI | ${{ needs.backend-openapi.result }} |',
+              '',
+              '## Coverage',
+              '',
+              `- ${process.env.BACKEND_COVERAGE}`,
+              `- ${process.env.FRONTEND_COVERAGE}`,
+              '',
+              'Coverage artifacts and OpenAPI JSON are attached to this run.'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Fail if required jobs failed
+        run: |
+          test "${{ needs.backend.result }}" = "success"
+          test "${{ needs.frontend.result }}" = "success"
+          test "${{ needs.backend-openapi.result }}" = "success"
