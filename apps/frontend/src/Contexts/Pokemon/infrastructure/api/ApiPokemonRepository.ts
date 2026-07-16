@@ -31,7 +31,7 @@ export class ApiPokemonRepository implements PokemonRepository {
   constructor(options: ApiPokemonRepositoryOptions = {}) {
     this.baseUrl = (options.baseUrl ?? env.VITE_API_BASE_URL).replace(/\/$/, '');
     this.timeoutMs = options.timeoutMs ?? env.VITE_API_TIMEOUT_MS;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
   async create(name: PokemonName): Promise<PokemonRepositoryCreateOutcome> {
