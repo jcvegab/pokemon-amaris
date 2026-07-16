@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+@keyframes pokeball-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@theme {
+  --color-pokedex-red: #dc2626;
+  --color-pokedex-red-dark: #991b1b;
+  --color-pokedex-yellow: #facc15;
+  --color-pokedex-black: #0f172a;
+  --color-pokedex-white: #f8fafc;
+
+  --font-display: 'Bangers', system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+  }
+  :focus-visible {
+    outline: none;
+  }
+}
+
+@layer components {
+  .pokedex-card {
+    @apply relative w-full max-w-md mx-auto rounded-3xl border-4 border-slate-900 bg-white shadow-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-700;
+  }
+  .pokedex-header {
+    @apply relative bg-red-600 text-white px-6 py-4 flex items-center gap-3 border-b-4 border-slate-900;
+  }
+  .pokedex-led {
+    @apply inline-block w-3 h-3 rounded-full bg-yellow-400 ring-2 ring-slate-900;
+  }
+  .field {
+    @apply w-full rounded-lg border-2 border-slate-900 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:placeholder:text-slate-400 dark:focus:ring-offset-slate-900;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-900 bg-red-600 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-slate-900;
+  }
+}
