@@ -18,9 +18,19 @@ Index of every ADR in this repo. Each ADR follows the
 | 0007 | AI usage disclosure              | Accepted | Docs       |
 | 0008 | Repository hygiene               | Accepted | CI/CD      |
 
+## Extensions (Phase 2B)
+
+| ID   | Title                                                       | Status   | Owner    |
+| ---- | ----------------------------------------------------------- | -------- | -------- |
+| 0009 | Frontend contextual architecture (domain/application/ui)    | Accepted | Frontend |
+| 0010 | Frontend HTTP flow (GET previo, DTO PokéAPI, abort parcial) | Accepted | Frontend |
+
 `0000-contract-freezing` is the umbrella: it freezes the Phase 0 contract
 in `docs/CONTRACT.md` and binds the rest of the project to it. Any change
 requires a new ADR.
+
+`0009` and `0010` are post-Phase 0 extensions that document the
+implementation actually shipped in `apps/frontend/`.
 
 ## Files
 
@@ -33,9 +43,8 @@ requires a new ADR.
 - `0006-cobertura-85.md`
 - `0007-ai-usage.md`
 - `0008-repository-hygiene.md`
-
-Stubs only in Phase 0. Full content is produced in Phase 2C
-(`feat/phase-2c-docs`) and refined in Phase 6.
+- `0009-frontend-contextual-architecture.md`
+- `0010-frontend-http-flow.md`
 
 ## Conventions
 

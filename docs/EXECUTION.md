@@ -1,17 +1,20 @@
-# PLAN — EXECUTION
+# EXECUTION — fases de construcción
 
 ## 1. Objetivo
 
-Definir el plan de ejecución por fases, con separación clara de responsabilidades entre agentes, para construir el monorepo `pokemon-amaris` siguiendo los documentos `STRUCTURE.md`, `BACKEND.md`, `FRONTEND.md`, `CI.md` y `DIAGRAM.md`.
+Definir el plan de ejecución por fases, con separación clara de
+responsabilidades entre agentes, para construir el monorepo
+`pokemon-amaris` siguiendo los documentos `STRUCTURE.md`,
+`BACKEND.md`, `FRONTEND.md`, `CI.md` y `DIAGRAM.md`.
 
 ## 2. Decisiones cerradas
 
 | #   | Decisión                                                                                                     | Documento de origen          |
 | --- | ------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 1   | TypeScript 6.x estable                                                                                       | STRUCTURE, BACKEND, FRONTEND |
+| 1   | TypeScript 6.x como piso                                                                                     | STRUCTURE, BACKEND, FRONTEND |
 | 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                    | BACKEND, DIAGRAM             |
-| 3   | Frontend siempre llama a `/api/pokemon` (Vite proxy en dev, Nginx en Docker)                                 | FRONTEND, CI                 |
-| 4   | UI expone un único input que envía `{ name }` (el backend también acepta `{ pokemon }`)                      | FRONTEND                     |
+| 3   | Frontend consume el backend a través de `/api/*` (Vite proxy en dev, Nginx en Docker)                        | FRONTEND, CI                 |
+| 4   | UI expone un único input que envía `{ name }` (backend también acepta `{ pokemon }`)                         | FRONTEND                     |
 | 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                | BACKEND, CI                  |
 | 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                | CI                           |
 | 7   | Concurrencia: `upsert` por `name` para evitar duplicados                                                     | BACKEND                      |
@@ -20,7 +23,9 @@ Definir el plan de ejecución por fases, con separación clara de responsabilida
 | 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                           | CI                           |
 | 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`   | BACKEND                      |
 | 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                          | DIAGRAM                      |
-| 13  | Pokémon existente: no se vuelve a consultar PokeAPI; se devuelve el registro persistido                      | BACKEND, DIAGRAM             |
+| 13  | Frontend hace `GET /pokemon/:name` antes del `POST` para detectar duplicados sin invocar PokeAPI             | FRONTEND, DIAGRAM, ADR 0010  |
+| 14  | Frontend adopta arquitectura contextual por bounded context con composition root manual                      | FRONTEND, ADR 0009           |
+| 15  | Nginx proxifica `/api/*` (no solo `/api/pokemon`); frontend expone `/healthz`                                | FRONTEND, ADR 0004           |
 
 ## 3. Ruta crítica
 
@@ -61,7 +66,9 @@ Fase 0 → Fase 1 → Fase 2A/2B (paralelas) → Fase 3 → Fase 4 → Fase 5 �
 └── .github/                           # CI/CD
 ```
 
-**Regla anti-conflicto:** un único agente propietario por ruta. Ningún agente edita fuera de su área sin coordinación con el integrador.
+**Regla anti-conflicto:** un único agente propietario por ruta.
+Ningún agente edita fuera de su área sin coordinación con el
+integrador.
 
 ## 5. Fases
 
@@ -70,13 +77,18 @@ Fase 0 → Fase 1 → Fase 2A/2B (paralelas) → Fase 3 → Fase 4 → Fase 5 �
 **Agente:** Arquitectura
 **Salidas:**
 
-- Contrato HTTP definitivo: `POST /pokemon`, `GET /health`, esquema de error.
-- Versiones exactas confirmadas (TS 6, Node 24, NestJS 11, Prisma 5, Vite 5, React 19, Tailwind 4, pnpm 10).
-- Variables de entorno: `PORT`, `DATABASE_URL`, `POKEAPI_BASE_URL`, `POKEAPI_TIMEOUT_MS`, `VITE_API_BASE_URL=/api`, `VITE_API_TIMEOUT_MS`.
+- Contrato HTTP definitivo: `POST /pokemon`, `GET /pokemon/:name`,
+  `GET /health`, esquema de error.
+- Versiones exactas confirmadas (TS 6, Node 24, NestJS 11, Prisma 5,
+  Vite 5, React 19, Tailwind 4, pnpm 10).
+- Variables de entorno: `PORT`, `DATABASE_URL`, `POKEAPI_BASE_URL`,
+  `POKEAPI_TIMEOUT_MS`, `VITE_API_BASE_URL=/api`,
+  `VITE_API_TIMEOUT_MS`.
 - Lista de ADRs iniciales.
 - Matriz de criterios de aceptación por fase.
 
-**Criterio de salida:** el resto de agentes puede leer un único bloque de contratos y no necesita reinterpretar los documentos.
+**Criterio de salida:** el resto de agentes puede leer un único
+bloque de contratos y no necesita reinterpretar los documentos.
 
 ### Fase 1 — Estructura del Monorepo
 
@@ -84,9 +96,11 @@ Fase 0 → Fase 1 → Fase 2A/2B (paralelas) → Fase 3 → Fase 4 → Fase 5 �
 **Archivos:** raíz del monorepo.
 **Salidas:**
 
-- `package.json` raíz con scripts: `dev`, `build`, `lint`, `test`, `test:cov`, `format`, `prepare`.
+- `package.json` raíz con scripts: `dev`, `build`, `lint`, `test`,
+  `test:cov`, `format`, `format:check`, `prepare`.
 - `pnpm-workspace.yaml` con `apps/*`.
-- `tsconfig.base.json` con strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`.
+- `tsconfig.base.json` con `strict`, `noUncheckedIndexedAccess`,
+  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`.
 - `eslint.config.mjs` flat config compartida.
 - `.prettierrc.json` con formato consistente.
 - `.editorconfig` LF/UTF-8.
@@ -117,16 +131,23 @@ pnpm build   # pasa en vacío
 
 1. Bootstrap NestJS 11, ESM, `@nestjs/config` con validación `zod`.
 2. Prisma 5: `schema.prisma`, `PrismaService`, `PrismaModule`.
-3. Dominio: entidad, value objects, `PokemonRepository` (puerto), `PokeapiPort`.
+3. Dominio: entidad, value objects, `PokemonRepository` (puerto),
+   `PokeapiPort`.
 4. Errores: `DomainError` y subclases; `HttpErrorFilter`.
-5. Aplicación: DTO, validadores (`PokemonNameField`, `ExactlyOneFieldConstraint`), `CreatePokemonUseCase`, mappers.
-6. Infraestructura: `PokeapiHttpAdapter`, `PrismaPokemonRepository` con `upsertByName`.
-7. Controlador `POST /pokemon` con flag `created` que mapea a `201` o `200`.
-8. `GET /health` con `TerminusModule` + `DatabaseHealthIndicator` mockeable.
-9. Swagger en `/docs` y `/docs-json`.
-10. Logger `nestjs-pino` con `requestId`.
-11. Dockerfile multi-stage.
-12. Tests unitarios y de integración (Prisma y PokeAPI mockeados).
+5. Aplicación: DTO, validadores (`PokemonNameField`,
+   `ExactlyOneFieldConstraint`), `CreatePokemonUseCase`, mappers.
+6. Infraestructura: `PokeapiHttpAdapter`,
+   `PrismaPokemonRepository` con `upsertByName`.
+7. Controlador `POST /pokemon` con flag `created` que mapea a `201`
+   o `200`.
+8. `GET /health` con `TerminusModule` +
+   `DatabaseHealthIndicator` mockeable.
+9. `GET /pokemon/:name` con caché de DB (no consulta PokeAPI si ya
+   existe; 404 si no existe y PokeAPI tampoco lo encuentra).
+10. Swagger en `/docs` y `/docs-json`.
+11. Logger `nestjs-pino` con `requestId`.
+12. Dockerfile multi-stage.
+13. Tests unitarios y de integración (Prisma y PokeAPI mockeados).
 
 **Casos obligatorios:**
 
@@ -144,6 +165,8 @@ pnpm build   # pasa en vacío
 - DB caída en lectura → 503.
 - DB caída en escritura → 503.
 - Upsert concurrente (mock) → una sola fila.
+- `GET /pokemon/:name` con DB hit → 200 sin llamar a PokeAPI.
+- `GET /pokemon/:name` con DB miss y PokeAPI miss → 404.
 
 **Criterio de salida:**
 
@@ -161,28 +184,49 @@ Cobertura ≥ 85% (lines, statements, functions), branches ≥ 80%.
 **Archivos:** `apps/frontend/**`.
 **Ejecución:** paralela con 2A y 2C. Backend se simula con mocks.
 
-**Orden interno:**
+**Orden interno (as-built):**
 
 1. Bootstrap Vite 5 + React 19 con TypeScript 6.
-2. Tailwind 4 vía `@tailwindcss/vite`.
-3. `env.ts` con validación `zod` (`VITE_API_BASE_URL=/api`, `VITE_API_TIMEOUT_MS`).
-4. Tipos del contrato basados en OpenAPI (cuando exista) o definidos manualmente.
-5. Cliente `createPokemon` con `fetch`, `AbortController`, `mapError`.
-6. `useCreatePokemon` con `submit`, `reset`, `Status`.
-7. Componentes: `PokemonForm`, `StatusBanner`, `PokemonResult`.
-8. `HomePage` que orquesta los componentes.
-9. Vite proxy `/api` → `http://localhost:3000`.
+2. Tailwind 4 vía `@tailwindcss/vite`; tokens y `@layer components`
+   en `src/index.css`.
+3. `Contexts/Shared/infrastructure/config/env.ts` con validación
+   `zod` (`VITE_API_BASE_URL=/api`, `VITE_API_TIMEOUT_MS`).
+4. Capas del bounded context `Pokemon`:
+   - `domain/`: `PokemonName`, `Pokemon`, `PokemonError`.
+   - `application/ports/PokemonRepository.ts`.
+   - `application/create/PokemonCreator.ts` con flujo
+     `findByName → create`.
+   - `infrastructure/api/`: `PokemonApiSchema` (zod),
+     `PokemonApiMapper`, `PokemonApiErrorMapper`,
+     `ApiPokemonRepository`.
+5. `Contexts/Shared/infrastructure/http/httpErrors.ts` con
+   `HttpError`, `NetworkError`, `RequestAbortedError`,
+   `combineSignals`.
+6. `src/app/composition-root.ts` que instancia
+   `ApiPokemonRepository` + `PokemonCreator`.
+7. `src/app/App.tsx` que pasa el caso de uso a `HomePage`.
+8. UI: `PokemonForm`, `StatusBanner`, `PokemonResult`,
+   `useCreatePokemon`, `PokemonPresenter`, `theme/`
+   (`Pokeball`, `PokemonBadge`, `tokens`).
+9. Vite proxy `/api/*` → `http://localhost:3000`.
 10. Temática Pokémon: paleta, pokébola SVG, tarjeta ficha, spinner.
 11. Accesibilidad: roles ARIA, foco visible, responsive.
-12. Vitest + Testing Library + jsdom. Umbral de cobertura 85%.
-13. Dockerfile multi-stage con Nginx y proxy `/api` → `http://backend:3000`.
+12. Tests en `test/unit/`, `test/integration/` y
+    `test/doubles/InMemoryPokemonRepository`.
+13. Vitest + Testing Library + jsdom. Umbral de cobertura 85% con
+    exclusiones declaradas.
+14. Dockerfile multi-stage con Nginx y proxy `/api/*` →
+    `http://backend:3000`, healthcheck `/healthz`.
 
 **Casos obligatorios:**
 
-- Envío con `{ name }` normalizado (`pikachu`, `Pikachu `, `  PIKACHU  `).
+- Envío con `{ name }` normalizado (`pikachu`, `Pikachu `,
+  `  PIKACHU  `).
+- `GET /pokemon/:name` antes del `POST` para evitar duplicados.
 - Estados `idle`, `loading`, `success`, `error`.
 - Error 400, 404, 502, 503, timeout, red.
-- Abort.
+- Preservación del `message` del backend cuando el body cumple el
+  schema de error; fallback humano cuando no.
 - Mobile y desktop.
 - Foco visible y roles ARIA.
 - Spinner temático durante carga.
@@ -211,22 +255,28 @@ pnpm --filter @pokemon-amaris/frontend build
 - `0006-cobertura-85.md`.
 - `0007-ai-usage.md`.
 - `0008-repository-hygiene.md`.
-- `docs/diagrams/sequence.mmd` y `docs/diagrams/architecture.mmd`.
+- `docs/diagrams/sequence.mmd` y `docs/diagrams/architecture.mmd`
+  (placeholders, contenido versionado dentro de `DIAGRAM.md`).
 
 ### Fase 3 — Integración y Docker
 
 **Agente:** Infra
-**Archivos:** `docker-compose.yml`, `apps/backend/Dockerfile` (con el del backend), `apps/frontend/Dockerfile` (con el del frontend), `nginx.conf`.
+**Archivos:** `docker-compose.yml`,
+`apps/backend/Dockerfile`, `apps/frontend/Dockerfile`,
+`apps/frontend/nginx.conf`.
 **Dependencia:** Fases 2A y 2B.
 
 **Servicios:**
 
 - `db` (Postgres 17) con healthcheck.
 - `db-init` que ejecuta `prisma db push`.
-- `backend` con `healthcheck` contra `/health` y `depends_on: db-init completed`.
+- `backend` con `healthcheck` contra `/health` y
+  `depends_on: db-init completed`.
 - `frontend` con Nginx y `depends_on: backend healthy`.
 
-**Proxy:** Nginx reescribe `/api/pokemon` → `http://backend:3000/pokemon`.
+**Proxy:** Nginx proxifica `/api/*` → `http://backend:3000/*`
+(genérico, ver ADR `0004`). `frontend` también expone `/healthz`
+para healthcheck de Docker.
 
 **Criterio de salida:**
 
@@ -242,7 +292,8 @@ Verificación de persistencia tras reinicio del backend.
 ### Fase 4 — Calidad
 
 **Agentes paralelos:** QA Backend, QA Frontend, QA Integración.
-**Reportan hallazgos al agente propietario. No editan archivos ajenos.**
+**Reportan hallazgos al agente propietario. No editan archivos
+ajenos.**
 
 **Objetivos:**
 
@@ -262,7 +313,8 @@ Verificación de persistencia tras reinicio del backend.
 
 **Salidas:**
 
-- `workflows/ci.yml` con jobs `backend`, `frontend`, `backend-openapi`, `summary`.
+- `workflows/ci.yml` con jobs `backend`, `frontend`,
+  `backend-openapi`, `summary`.
 - `workflows/docker.yml` con build de imágenes por aplicación.
 - `workflows/codeql.yml` opcional.
 - `dependabot.yml` con `npm`, `github-actions`, `docker`.
@@ -280,19 +332,23 @@ Verificación de persistencia tras reinicio del backend.
 - `curl -fsS http://localhost:3000/docs-json -o openapi.json`.
 - Sube `openapi.json` como artefacto.
 
-**Validación:** checks `ci/backend`, `ci/frontend`, `ci/summary` quedan verdes.
+**Validación:** checks `ci/backend`, `ci/frontend`, `ci/summary`
+quedan verdes.
 
 ### Fase 6 — Documentación Final
 
 **Agente:** Docs
-**Archivos:** `README.md`, `docs/DIAGRAM.md`, `docs/adr/**` (refinamiento), `docs/diagrams/**`.
+**Archivos:** `README.md`, `docs/DIAGRAM.md`,
+`docs/adr/**` (refinamiento), `docs/diagrams/**`.
 
 **Salidas:**
 
-- README con ejecución local y Docker, ejemplos, tabla de errores, decisiones.
+- README con ejecución local y Docker, ejemplos, tabla de errores,
+  decisiones.
 - `docs/DIAGRAM.md` con Mermaid embebido (no rutas externas).
 - Diagramas: secuencia y arquitectura.
-- ADRs finales.
+- ADRs finales (incluyendo `0009` arquitectura contextual
+  frontend y `0010` flujo HTTP frontend).
 - Registro de uso de IA.
 
 ### Fase 7 — Release
@@ -345,13 +401,14 @@ docker compose up --build
 ```text
 Eres el agente de arquitectura. Tu única entrega son contratos y decisiones:
 1. POST /pokemon: 201 nuevo, 200 existente. Schema: { id, name, height, weight, types, createdAt }.
-2. GET /health: 200 si DB up, 503 si DB down.
-3. Error: { statusCode, code, message, timestamp, path }, message siempre string.
-4. Variables: PORT (backend), DATABASE_URL, POKEAPI_BASE_URL, POKEAPI_TIMEOUT_MS,
+2. GET /pokemon/:name: 200 si existe en DB, 404 si no existe y PokeAPI tampoco.
+3. GET /health: 200 si DB up, 503 si DB down.
+4. Error: { statusCode, code, message, timestamp, path }, message siempre string.
+5. Variables: PORT (backend), DATABASE_URL, POKEAPI_BASE_URL, POKEAPI_TIMEOUT_MS,
    VITE_API_BASE_URL=/api, VITE_API_TIMEOUT_MS.
-5. Versiones: TS 6, Node 24, NestJS 11, Prisma 5, Vite 5, React 19, Tailwind 4, pnpm 10.
-6. Concurrencia: upsert por name.
-7. No escribir código. Solo documentos de contrato y ADR inicial.
+6. Versiones: TS 6, Node 24, NestJS 11, Prisma 5, Vite 5, React 19, Tailwind 4, pnpm 10.
+7. Concurrencia: upsert por name.
+8. No escribir código. Solo documentos de contrato y ADR inicial.
 ```
 
 ### Foundation (Fase 1)
@@ -376,6 +433,7 @@ Sigue BACKEND.md y los contratos de Fase 0:
 - Arquitectura hexagonal sin CQRS.
 - POST /pokemon: 201 nuevo, 200 existente. Upsert por name.
 - POST /pokemon acepta { name } o { pokemon }, normalización trim+lowercase.
+- GET /pokemon/:name: 200 con registro persistido, 404 si no existe y PokeAPI tampoco.
 - GET /health con Terminus + DatabaseHealthIndicator.
 - Schema de error uniforme: { statusCode, code, message, timestamp, path }.
 - Logger nestjs-pino con requestId.
@@ -393,12 +451,18 @@ Sigue FRONTEND.md y los contratos de Fase 0:
 - Vite 5, React 19, TS 6, Tailwind 4.
 - VITE_API_BASE_URL=/api. Vite proxy en dev, Nginx en prod.
 - Un único input que envía { name }.
-- Estados idle, loading, success, error.
-- mapError traduce el contrato de error backend a mensaje humano.
-- Temática Pokédex: paleta rojo/blanco/negro/amarillo, pokébola SVG, tarjeta ficha.
-- Accesibilidad: roles ARIA, foco visible, responsive.
-- Vitest + Testing Library + jsdom. Cobertura ≥ 85%.
-- Dockerfile multi-stage con nginx:alpine y proxy /api → http://backend:3000.
+- Bounded context Pokemon con capas domain/application/infrastructure/ui.
+- Composition root manual en src/app.
+- GET /pokemon/:name antes del POST para detectar duplicados (ADR 0010).
+- useCreatePokemon con state discriminado y AbortController por request.
+- Presenter convierte Pokemon → PokemonViewModel (unidades, fecha es-PE).
+- Mensajes de error humanos cuando el body no cumple el schema; en caso
+  contrario, preservar message del backend.
+- Tests: test/unit, test/integration, test/doubles/InMemoryPokemonRepository.
+- Vitest + Testing Library + jsdom. Cobertura ≥ 85% con exclusiones
+  declaradas (src/app, test-setup, theme).
+- Dockerfile multi-stage con nginx:alpine y proxy /api/* → http://backend:3000.
+  Healthcheck contra /healthz.
 ```
 
 ### Infra (Fase 3)
@@ -412,9 +476,9 @@ Servicios:
 - backend: build desde apps/backend/Dockerfile. healthcheck contra /health.
   depends_on: db-init service_completed_successfully.
 - frontend: build desde apps/frontend/Dockerfile. depends_on: backend healthy.
-  Puerto host 8080 → 80 contenedor.
+  Puerto host 8080 → 80 contenedor. Healthcheck contra /healthz.
 Puertos host: backend 3000, frontend 8080.
-El proxy Nginx reescribe /api/pokemon → http://backend:3000/pokemon.
+Nginx del frontend proxifica /api/* → http://backend:3000/* y expone /healthz.
 ```
 
 ### CI/CD (Fase 5)
@@ -440,8 +504,9 @@ Eres el agente docs. Cierras documentación.
   endpoint con ejemplo y tabla de errores, pruebas, decisiones (links a ADRs),
   uso de IA, diagrama.
 - docs/DIAGRAM.md con Mermaid embebido (no rutas externas).
-- docs/diagrams/*.mmd como fuente.
-- ADRs 0001..0008 refinados.
+- docs/diagrams/*.mmd como fuente cuando se generen aparte.
+- ADRs 0001..0010 refinados. ADRs 0009 (arquitectura contextual frontend)
+  y 0010 (flujo HTTP frontend) son obligatorios para reflejar lo construido.
 ```
 
 ### QA (Fase 4)
@@ -450,6 +515,7 @@ Eres el agente docs. Cierras documentación.
 Eres QA. No editas. Reportas hallazgos.
 - QA Backend: cobertura, casos obligatorios, formato de errores, arquitectura.
 - QA Frontend: estados, accesibilidad, responsive, cobertura, temática.
+  Verifica la conformidad con la respuesta PokeAPI anidada (ADR 0010).
 - QA Integración: docker compose up, persistencia tras reinicio, proxy /api, health.
 Cada hallazgo indica: severidad, archivo:línea, descripción, sugerencia de fix.
 ```
@@ -475,7 +541,8 @@ Cada hallazgo indica: severidad, archivo:línea, descripción, sugerencia de fix
 - Cambios raíz solo los hace Foundation o Integrador.
 - Contrato congelado en Fase 0; cambios posteriores requieren ADR.
 - No editar fuera del área asignada.
-- Antes de pedir review, ejecutar `pnpm lint`, `pnpm test`, `pnpm build` en la app propia.
+- Antes de pedir review, ejecutar `pnpm lint`, `pnpm test`,
+  `pnpm build` en la app propia.
 
 ### 9.1 Política de commits por fase
 
@@ -494,13 +561,20 @@ Cada hallazgo indica: severidad, archivo:línea, descripción, sugerencia de fix
 
 **Reglas:**
 
-- Cada commit se hace **solo** después de cumplir el criterio de salida de la fase.
-- Fases paralelas (`2A`, `2B`, `2C`) producen commits independientes en sus respectivas ramas.
-- QA no genera commits propios. Si un agente propietario aplica correcciones durante QA, se commitea en la rama del propietario.
+- Cada commit se hace **solo** después de cumplir el criterio de
+  salida de la fase.
+- Fases paralelas (`2A`, `2B`, `2C`) producen commits independientes en
+  sus respectivas ramas.
+- QA no genera commits propios. Si un agente propietario aplica
+  correcciones durante QA, se commitea en la rama del propietario.
 - El integrador no mezcla fases en un mismo commit.
-- Commits con cambios parciales o que rompan el criterio de salida no se aceptan.
-- Conventional Commits estricto: tipo, scope opcional, descripción imperativa.
-- Mensaje de commit incluye referencia a la fase cuando aporta trazabilidad, p. ej. `feat(backend): implement pokemon service (phase 2a)`.
+- Commits con cambios parciales o que rompan el criterio de salida no
+  se aceptan.
+- Conventional Commits estricto: tipo, scope opcional, descripción
+  imperativa.
+- Mensaje de commit incluye referencia a la fase cuando aporta
+  trazabilidad, p. ej. `feat(backend): implement pokemon service
+(phase 2a)`.
 
 **Commits esperados (resumen):**
 
@@ -517,13 +591,19 @@ docs: finalize project documentation
 ## 10. Criterios de Aceptación del Plan
 
 - [ ] Plan ejecutado en orden sin bloqueos no resueltos.
-- [ ] Cada fase completa sus criterios de salida antes de la siguiente.
-- [ ] Cada fase con commit obligatorio genera exactamente un commit de cierre en su rama.
-- [ ] QA sin commit propio; correcciones commiteadas por el agente propietario.
-- [ ] Release no introduce commit nuevo; se materializa como tag anotado.
+- [ ] Cada fase completa sus criterios de salida antes de la
+      siguiente.
+- [ ] Cada fase con commit obligatorio genera exactamente un commit
+      de cierre en su rama.
+- [ ] QA sin commit propio; correcciones commiteadas por el agente
+      propietario.
+- [ ] Release no introduce commit nuevo; se materializa como tag
+      anotado.
 - [ ] Cobertura backend y frontend ≥ 85%.
-- [ ] `docker compose up --build` arranca los tres servicios sin intervención.
-- [ ] `POST /pokemon` con `{name:"pikachu"}` retorna 201; repetido retorna 200.
+- [ ] `docker compose up --build` arranca los tres servicios sin
+      intervención.
+- [ ] `POST /pokemon` con `{name:"pikachu"}` retorna 201; repetido
+      retorna 200.
 - [ ] UI envía `{ name }` y muestra estados correctamente.
 - [ ] CI corre en cada PR, publica cobertura y OpenAPI.
 - [ ] `docs/DIAGRAM.md` renderiza en GitHub.

@@ -1,7 +1,7 @@
 # ADR 0003 — Hexagonal architecture (no CQRS)
 
-- **Status:** Accepted (stub; full content in Phase 2C)
-- **Source:** `docs/BACKEND.md` §2, §3, §7, §8
+- **Status:** Accepted
+- **Source:** `docs/BACKEND.md` §2, §3, §7, §8; ADR `0009`
 
 ## Context
 
@@ -30,3 +30,8 @@ domain.
   read-then-write sequence.
 - Domain code never imports from `@nestjs/*`, `@prisma/client`, or
   `axios`. Easier to test, easier to swap.
+- The frontend adopts an analogous contextual layout documented in
+  ADR `0009` (`Contexts/Pokemon/{domain, application,
+infrastructure, ui}`). Both sides use the same idea of ports and
+  adapters, but the frontend has no DI container: the composition
+  root is a plain function in `src/app/composition-root.ts`.

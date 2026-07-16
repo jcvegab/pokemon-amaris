@@ -1,10 +1,12 @@
 # ACCEPTANCE — Per-phase criteria matrix
 
-One row per phase, one column per criterion. A phase is "done" only when
-every cell in its row is checked. Mirrors `EXECUTION.md` §10 but laid out
-so an integrator or QA agent can tick boxes mechanically.
+One row per phase, one column per criterion. A phase is "done" only
+when every cell in its row is checked. Mirrors `EXECUTION.md` §10
+but laid out so an integrator or QA agent can tick boxes
+mechanically.
 
-Legend: `[ ]` pending, `[x]` required to close, `[~]` optional / nice.
+Legend: `[ ]` pending, `[x]` required to close, `[~]` optional /
+nice.
 
 ## Phase 0 — Contracts and decisions
 
@@ -56,63 +58,69 @@ Legend: `[ ]` pending, `[x]` required to close, `[~]` optional / nice.
 | 2A.15 | Swagger served at `/docs` and `/docs-json`.                                                          | [ ]    |
 | 2A.16 | `nestjs-pino` logger emits `requestId`, `pokemonName`, `outcome`.                                    | [ ]    |
 | 2A.17 | Dockerfile multi-stage builds from `node:24-alpine`.                                                 | [ ]    |
-| 2A.18 | Single commit `feat(backend): implement pokemon service` on `feat/phase-2a-backend`.                 | [ ]    |
+| 2A.18 | `GET /pokemon/:name` returns `200` con registro persistido, `404` si no existe y PokeAPI tampoco.    | [ ]    |
+| 2A.19 | Single commit `feat(backend): implement pokemon service` on `feat/phase-2a-backend`.                 | [ ]    |
 
 ## Phase 2B — Frontend
 
-| #     | Criterion                                                                                        | Status |
-| ----- | ------------------------------------------------------------------------------------------------ | ------ |
-| 2B.1  | `pnpm --filter @pokemon-amaris/frontend lint` passes.                                            | [ ]    |
-| 2B.2  | `pnpm --filter @pokemon-amaris/frontend test:cov` passes with global coverage ≥ 85/85/85/80.     | [ ]    |
-| 2B.3  | `pnpm --filter @pokemon-amaris/frontend build` succeeds.                                         | [ ]    |
-| 2B.4  | Client always sends `{ name }` to `${VITE_API_BASE_URL}/pokemon` (no `{ pokemon }` in the UI).   | [ ]    |
-| 2B.5  | Normalization of `pikachu`, `Pikachu `, `  PIKACHU  ` in the form.                               | [ ]    |
-| 2B.6  | Hook states `idle` / `loading` / `success` / `error` covered by tests.                           | [ ]    |
-| 2B.7  | Errors 400, 404, 502, 503, timeout, network each map to a human message.                         | [ ]    |
-| 2B.8  | Abort path: hook cancels in-flight request on `reset()`.                                         | [ ]    |
-| 2B.9  | Pokémon themed UI: red/white/black/yellow palette, pokébola SVG, ficha card, spinner.            | [ ]    |
-| 2B.10 | Accessibility: ARIA roles, visible focus, labels for input/button.                               | [ ]    |
-| 2B.11 | Responsive: mobile (≤ 480px) and desktop (≥ 1024px) layouts present.                             | [ ]    |
-| 2B.12 | Vite dev proxy `/api` → `http://localhost:3000`.                                                 | [ ]    |
-| 2B.13 | Frontend Dockerfile multi-stage with Nginx; `nginx.conf` proxies `/api` → `http://backend:3000`. | [ ]    |
-| 2B.14 | Single commit `feat(frontend): build pokemon themed interface` on `feat/phase-2b-frontend`.      | [ ]    |
+| #     | Criterion                                                                                                                | Status |
+| ----- | ------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 2B.1  | `pnpm --filter @pokemon-amaris/frontend lint` passes.                                                                    | [ ]    |
+| 2B.2  | `pnpm --filter @pokemon-amaris/frontend test:cov` passes with global coverage ≥ 85/85/85/80 (exclusiones declaradas).    | [ ]    |
+| 2B.3  | `pnpm --filter @pokemon-amaris/frontend build` succeeds.                                                                 | [ ]    |
+| 2B.4  | Client siempre envía `{ name }` al `POST` `${VITE_API_BASE_URL}/pokemon` (no `{ pokemon }` en la UI).                    | [ ]    |
+| 2B.5  | Normalización de `pikachu`, `Pikachu `, `  PIKACHU  ` en el formulario (via `PokemonName`).                              | [ ]    |
+| 2B.6  | Hook expone estados `idle` / `loading` / `success` / `error` con unión discriminada.                                     | [ ]    |
+| 2B.7  | `GET ${VITE_API_BASE_URL}/pokemon/:name` se ejecuta antes del `POST` para detectar duplicados (ADR 0010).                | [ ]    |
+| 2B.8  | Hook descarta resultados tardíos vía `AbortController` por `submit`; cancelación del request no se inyecta al HTTP.      | [ ]    |
+| 2B.9  | Respuesta de éxito validada con schema PokeAPI (`types: [{ slot, type: { name, url } }]`) y proyectada a `string[]`.     | [ ]    |
+| 2B.10 | `createdAt` se tolera ausente con fallback a `new Date().toISOString()`.                                                 | [ ]    |
+| 2B.11 | Errors 400, 404, 502, 503, timeout, network: `message` del backend se conserva si el body encaja; fallback humano si no. | [ ]    |
+| 2B.12 | Composition root en `src/app/composition-root.ts`; tests usan `InMemoryPokemonRepository`.                               | [ ]    |
+| 2B.13 | Temática Pokémon: paleta rojo/blanco/negro/amarillo, pokébola SVG, ficha, spinner; sin imágenes externas.                | [ ]    |
+| 2B.14 | Accessibility: roles ARIA, foco visible, labels asociados en `PokemonForm`.                                              | [ ]    |
+| 2B.15 | Responsive: mobile (≤ 480px) y desktop (≥ 1024px) layouts presentes.                                                     | [ ]    |
+| 2B.16 | Vite dev proxy `/api/*` → `http://localhost:3000`.                                                                       | [ ]    |
+| 2B.17 | Frontend Dockerfile multi-stage con Nginx; `nginx.conf` proxifica `/api/*` → `http://backend:3000/*` y `/healthz`.       | [ ]    |
+| 2B.18 | Single commit `feat(frontend): build pokemon themed interface` on `feat/phase-2b-frontend`.                              | [ ]    |
 
 ## Phase 2C — Documentation initial
 
 | #    | Criterion                                                                 | Status |
 | ---- | ------------------------------------------------------------------------- | ------ |
-| 2C.1 | ADRs `0001..0008` filled with full Nygard sections (not stubs).           | [ ]    |
+| 2C.1 | ADRs `0001..0010` filled with full Nygard sections (no stubs).            | [ ]    |
 | 2C.2 | `docs/diagrams/sequence.mmd` matches `DIAGRAM.md` §3 source.              | [ ]    |
 | 2C.3 | `docs/diagrams/architecture.mmd` matches `DIAGRAM.md` §4 source.          | [ ]    |
 | 2C.4 | Single commit `docs: add architecture decisions` on `feat/phase-2c-docs`. | [ ]    |
 
 ## Phase 3 — Integration and Docker
 
-| #   | Criterion                                                                                  | Status |
-| --- | ------------------------------------------------------------------------------------------ | ------ |
-| 3.1 | `docker compose up --build` brings all three services up without manual steps.             | [ ]    |
-| 3.2 | `curl http://localhost:3000/health` returns `200` with `database.status=up`.               | [ ]    |
-| 3.3 | `curl -X POST http://localhost:3000/pokemon -d '{"name":"pikachu"}'` returns `201`.        | [ ]    |
-| 3.4 | `curl -X POST http://localhost:8080/api/pokemon -d '{"name":"charmander"}'` returns `201`. | [ ]    |
-| 3.5 | Repeat `pikachu` returns `200` with the same `createdAt`.                                  | [ ]    |
-| 3.6 | After `docker compose restart backend`, the row for `pikachu` is still there.              | [ ]    |
-| 3.7 | Stopping `db` makes `GET /health` return `503`.                                            | [ ]    |
-| 3.8 | Nginx `/api/pokemon` proxy is verified by an integration test or manual `curl`.            | [ ]    |
-| 3.9 | Single commit `chore(infra): add containerized stack` on `feat/phase-3-infra`.             | [ ]    |
+| #    | Criterion                                                                                  | Status |
+| ---- | ------------------------------------------------------------------------------------------ | ------ |
+| 3.1  | `docker compose up --build` brings all three services up without manual steps.             | [ ]    |
+| 3.2  | `curl http://localhost:3000/health` returns `200` with `database.status=up`.               | [ ]    |
+| 3.3  | `curl -X POST http://localhost:3000/pokemon -d '{"name":"pikachu"}'` returns `201`.        | [ ]    |
+| 3.4  | `curl -X POST http://localhost:8080/api/pokemon -d '{"name":"charmander"}'` returns `201`. | [ ]    |
+| 3.5  | Repeat `pikachu` returns `200` with the same `createdAt`.                                  | [ ]    |
+| 3.6  | After `docker compose restart backend`, the row for `pikachu` is still there.              | [ ]    |
+| 3.7  | Stopping `db` makes `GET /health` return `503`.                                            | [ ]    |
+| 3.8  | Nginx `/api/*` proxy is verified by an integration test or manual `curl`.                  | [ ]    |
+| 3.9  | `wget -qO- http://localhost/healthz` del contenedor frontend responde `200`.               | [ ]    |
+| 3.10 | Single commit `chore(infra): add containerized stack` on `feat/phase-3-infra`.             | [ ]    |
 
 ## Phase 4 — Quality
 
-| #   | Criterion                                                                             | Status |
-| --- | ------------------------------------------------------------------------------------- | ------ |
-| 4.1 | Backend coverage ≥ 85% lines/statements/functions, ≥ 80% branches.                    | [ ]    |
-| 4.2 | Frontend coverage ≥ 85% lines/statements/functions, ≥ 80% branches.                   | [ ]    |
-| 4.3 | `pnpm lint` clean (no warnings) at root.                                              | [ ]    |
-| 4.4 | No secrets in the diff (`grep`-checked for `.env`, tokens, passwords).                | [ ]    |
-| 4.5 | Logs contain no PII; only `requestId`, `pokemonName` (post-normalization), `outcome`. | [ ]    |
-| 4.6 | Frontend `mapError` covers every backend error code (table cross-check).              | [ ]    |
-| 4.7 | All `DEFINITION.md` functional cases covered by automated tests.                      | [ ]    |
-| 4.8 | Smoke test of `docker compose up` from a clean state succeeds.                        | [ ]    |
-| 4.9 | QA agents report findings only; fixes land on the owner's branch.                     | [ ]    |
+| #   | Criterion                                                                                  | Status |
+| --- | ------------------------------------------------------------------------------------------ | ------ |
+| 4.1 | Backend coverage ≥ 85% lines/statements/functions, ≥ 80% branches.                         | [ ]    |
+| 4.2 | Frontend coverage ≥ 85% lines/statements/functions, ≥ 80% branches (exclusiones ADR 0006). | [ ]    |
+| 4.3 | `pnpm lint` clean (no warnings) at root.                                                   | [ ]    |
+| 4.4 | No secrets in the diff (`grep`-checked for `.env`, tokens, passwords).                     | [ ]    |
+| 4.5 | Logs contain no PII; only `requestId`, `pokemonName` (post-normalization), `outcome`.      | [ ]    |
+| 4.6 | Frontend `mapError` cubre los códigos backend y cae a fallback humano por `statusCode`.    | [ ]    |
+| 4.7 | All `DEFINITION.md` functional cases covered by automated tests.                           | [ ]    |
+| 4.8 | Smoke test of `docker compose up` from a clean state succeeds.                             | [ ]    |
+| 4.9 | QA agents report findings only; fixes land on the owner's branch.                          | [ ]    |
 
 ## Phase 5 — CI and governance
 
@@ -135,7 +143,7 @@ Legend: `[ ]` pending, `[x]` required to close, `[~]` optional / nice.
 | 6.1 | `README.md` covers description, architecture, stack, prereqs, Docker run, local run, endpoint, errors, tests, decisions, AI use, diagram. | [ ]    |
 | 6.2 | `docs/DIAGRAM.md` renders both Mermaid blocks on GitHub.                                                                                  | [ ]    |
 | 6.3 | `docs/diagrams/sequence.mmd` and `architecture.mmd` kept as the source of truth.                                                          | [ ]    |
-| 6.4 | ADRs `0001..0008` refined (any decisions taken since the stubs are recorded).                                                             | [ ]    |
+| 6.4 | ADRs `0001..0010` refined (any decisions taken since the stubs are recorded).                                                             | [ ]    |
 | 6.5 | `docs/adr/0007-ai-usage.md` filled with the actual record of AI use.                                                                      | [ ]    |
 | 6.6 | Single commit `docs: finalize project documentation` on `feat/phase-6-docs`.                                                              | [ ]    |
 
@@ -154,4 +162,4 @@ Legend: `[ ]` pending, `[x]` required to close, `[~]` optional / nice.
 | 7.9  | Swagger UI loads at `/docs`.                                           | [ ]    |
 | 7.10 | Diagrams render in `docs/DIAGRAM.md`.                                  | [ ]    |
 | 7.11 | README walk-through succeeds from a fresh clone.                       | [ ]    |
-| 7.12 | Annotated tag `v0.1.0` on `master`. No new code commit in Phase 7.     | [ ]    |
+| 7.12 | Annotated tag `v0.1.0` on `main`. No new code commit in Phase 7.       | [ ]    |

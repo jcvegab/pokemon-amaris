@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <clipPath id="half">
+      <rect x="0" y="32" width="64" height="32" />
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="#dc2626" />
+  <rect x="0" y="32" width="64" height="30" fill="#dc2626" />
+  <g clip-path="url(#half)">
+    <circle cx="32" cy="32" r="30" fill="#f8fafc" />
+  </g>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#0f172a" stroke-width="2" />
+  <rect x="0" y="30" width="64" height="4" fill="#0f172a" />
+  <circle cx="32" cy="32" r="8" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+  <circle cx="32" cy="32" r="3" fill="#0f172a" />
+</svg>

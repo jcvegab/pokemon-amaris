@@ -1,25 +1,35 @@
-# PLAN — FRONTEND
+# FRONTEND — implementación
 
 ## 1. Objetivo
 
-Construir la aplicación en React 19 con Vite y Tailwind 4 que consume `POST /pokemon` del backend, gestiona estados de carga, éxito y error, y refleja los mensajes del servicio de forma comprensible.
+Construir la SPA en React 19 con Vite y Tailwind 4 que consume los
+endpoints del backend (`POST /pokemon`, `GET /pokemon/:name`), gestiona
+los estados de carga, éxito y error, y refleja los resultados con
+mensajes comprensibles.
+
+> Este documento describe el código construido en
+> `apps/frontend/`, no el plan original. Cambios respecto a
+> `docs/CONTRACT.md` y `docs/STRUCTURE.md` se justifican en los ADRs
+> `0009` (arquitectura contextual) y `0010` (flujo HTTP frontend).
 
 ## 2. Decisiones técnicas
 
-| Aspecto            | Decisión                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| Framework          | React 19                                                                                                                       |
-| Build tool         | Vite 5                                                                                                                         |
-| Lenguaje           | TypeScript 6.x (extiende `tsconfig.base.json`)                                                                                 |
-| Estilos            | Tailwind CSS 4 (`@tailwindcss/vite`)                                                                                           |
-| Cliente HTTP       | `fetch` nativo con `AbortController`                                                                                           |
-| Formularios        | Un único input que envía `{ name }` (API también acepta `{ pokemon }`)                                                         |
-| Estado servidor    | Local (sin TanStack Query; suficiente para el alcance)                                                                         |
-| Router             | No requerido (SPA de una vista)                                                                                                |
-| Tests              | Vitest + Testing Library + jsdom                                                                                               |
-| Cobertura objetivo | > 85%                                                                                                                          |
-| Accesibilidad      | Roles ARIA y foco visible                                                                                                      |
-| Temática           | Estética Pokémon sencilla (paleta rojo/blanco/negro/amarillo, contenedor Pokédex, pokébola como detalle, tarjeta estilo ficha) |
+| Aspecto            | Decisión                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| Framework          | React 19 (`StrictMode` activo)                                                     |
+| Build tool         | Vite 5                                                                             |
+| Lenguaje           | TypeScript 6.x (extiende `tsconfig.base.json`)                                     |
+| Estilos            | Tailwind CSS 4 (`@tailwindcss/vite`, `@import 'tailwindcss'`, `@theme`)            |
+| Cliente HTTP       | `fetch` nativo con `AbortController` y timeout por request                         |
+| Formularios        | Un único input que envía `{ name }`                                                |
+| Estado servidor    | Local; un hook propio controla la transición `idle / loading / success / error`    |
+| Router             | No requerido (SPA de una vista)                                                    |
+| Arquitectura       | Contextual: `domain` / `application` / `infrastructure` / `ui` por bounded context |
+| Composition root   | Manual, en `src/app/composition-root.ts`                                           |
+| Tests              | Vitest + Testing Library + jsdom                                                   |
+| Cobertura objetivo | ≥ 85% (líneas, statements, funciones); branches ≥ 80%                              |
+| Accesibilidad      | Roles ARIA, foco visible, etiquetas asociadas                                      |
+| Temática           | Pokédex sencilla (paleta rojo/blanco/negro/amarillo, pokébola SVG, ficha)          |
 
 ## 3. Layout de `apps/frontend`
 
@@ -29,39 +39,92 @@ apps/frontend/
 │   └── favicon.svg
 ├── src/
 │   ├── main.tsx
-│   ├── App.tsx
 │   ├── index.css
-│   ├── env.ts
-│   ├── api/
-│   │   ├── client.ts
-│   │   └── create-pokemon.ts
-│   ├── components/
-│   │   ├── PokemonForm.tsx
-│   │   ├── PokemonForm.test.tsx
-│   │   ├── PokemonResult.tsx
-│   │   ├── PokemonResult.test.tsx
-│   │   ├── StatusBanner.tsx
-│   │   └── StatusBanner.test.tsx
-│   ├── hooks/
-│   │   ├── useCreatePokemon.ts
-│   │   └── useCreatePokemon.test.ts
-│   ├── pages/
-│   │   └── HomePage.tsx
-│   ├── lib/
-│   │   ├── format.ts
-│   │   └── format.test.ts
-│   └── types/
-│       └── pokemon.ts
+│   ├── test-setup.ts
+│   ├── app/
+│   │   ├── App.tsx
+│   │   └── composition-root.ts
+│   └── Contexts/
+│       ├── Shared/
+│       │   └── infrastructure/
+│       │       ├── config/
+│       │       │   └── env.ts
+│       │       └── http/
+│       │           └── httpErrors.ts
+│       └── Pokemon/
+│           ├── domain/
+│           │   └── model/
+│           │       ├── Pokemon.ts
+│           │       ├── PokemonName.ts
+│           │       └── PokemonError.ts
+│           ├── application/
+│           │   ├── create/
+│           │   │   └── PokemonCreator.ts
+│           │   └── ports/
+│           │       └── PokemonRepository.ts
+│           ├── infrastructure/
+│           │   └── api/
+│           │       ├── ApiPokemonRepository.ts
+│           │       ├── PokemonApiSchema.ts
+│           │       ├── PokemonApiMapper.ts
+│           │       └── PokemonApiErrorMapper.ts
+│           └── ui/
+│               ├── components/
+│               │   ├── PokemonForm.tsx
+│               │   ├── PokemonResult.tsx
+│               │   └── StatusBanner.tsx
+│               ├── hooks/
+│               │   └── useCreatePokemon.ts
+│               ├── pages/
+│               │   └── HomePage.tsx
+│               ├── presenters/
+│               │   └── PokemonPresenter.ts
+│               ├── state/
+│               │   └── CreatePokemonState.ts
+│               └── theme/
+│                   ├── Pokeball.tsx
+│                   ├── PokemonBadge.tsx
+│                   └── tokens.ts
+├── test/
+│   ├── doubles/
+│   │   └── InMemoryPokemonRepository.ts
+│   ├── integration/
+│   │   ├── HomePage.test.tsx
+│   │   └── HomePageFlow.test.tsx
+│   └── unit/
+│       ├── ApiPokemonRepository.test.ts
+│       ├── Pokemon.test.ts
+│       ├── PokemonApiErrorMapper.test.ts
+│       ├── PokemonApiSchema.test.ts
+│       ├── PokemonCreator.test.ts
+│       ├── PokemonError.test.ts
+│       ├── PokemonForm.test.tsx
+│       ├── PokemonName.test.ts
+│       ├── PokemonPresenter.test.ts
+│       ├── PokemonResult.test.tsx
+│       ├── StatusBanner.test.tsx
+│       └── httpErrors.test.ts
 ├── .env.example
+├── Dockerfile
+├── nginx.conf
 ├── index.html
+├── package.json
 ├── tsconfig.json
 ├── tsconfig.node.json
 ├── vite.config.ts
-├── vitest.config.ts
-├── tailwind.config.ts
-├── package.json
-└── README.md
+└── vitest.config.ts
 ```
+
+Convenciones observadas:
+
+- `Contexts/` en `PascalCase` (excepción documentada en
+  `STRUCTURE.md` §7 y ADR `0009`).
+- Archivos de capa en `PascalCase`; tests en `kebab-case` solo cuando
+  describen la unidad probada (no se aplica aquí).
+- `test/` separado de `src/`; los tests no viven junto al código.
+- No existe `tailwind.config.ts`; la configuración está en
+  `vite.config.ts` (plugin) y `src/index.css` (`@import 'tailwindcss'`,
+  `@theme`, `@layer`).
 
 ## 4. Variables de entorno
 
@@ -72,32 +135,139 @@ VITE_API_BASE_URL=/api
 VITE_API_TIMEOUT_MS=8000
 ```
 
-`src/env.ts` valida con `zod` y exporta un objeto tipado.
+Validación en `src/Contexts/Shared/infrastructure/config/env.ts` con
+`zod`. La variable se evalúa en build-time porque Vite la expone vía
+`import.meta.env`.
 
-> **Convención `/api`:** el frontend siempre llama a `${VITE_API_BASE_URL}/pokemon`. En desarrollo, el dev server de Vite hace proxy de `/api` a `http://localhost:3000`. En Docker, Nginx hace proxy de `/api` a `http://backend:3000`. Esto evita CORS y mantiene el código del cliente idéntico entre entornos.
+Reglas:
 
-## 5. UI
+- `VITE_API_BASE_URL` debe empezar con `/` o ser una URL absoluta;
+  default `/api`.
+- `VITE_API_TIMEOUT_MS` es entero positivo en milisegundos; default
+  `8000`.
 
-### 5.1 Estructura
+> El frontend siempre llama a `${VITE_API_BASE_URL}/pokemon` y
+> `${VITE_API_BASE_URL}/pokemon/:name`. En desarrollo, el dev server
+> de Vite proxifica `/api/*` a `http://localhost:3000`. En Docker,
+> Nginx proxifica `/api/*` a `http://backend:3000`. Esto evita CORS y
+> mantiene el código del cliente idéntico entre entornos.
 
-- Encabezado con título "Pokédex Amaris" y un detalle visual de pokébola.
-- `<PokemonForm />`: un único input con etiqueta visible "Nombre del Pokémon", botón "Buscar y guardar", estados disabled durante la carga.
-- `<StatusBanner />`: muestra carga, error o éxito; desaparece al cambiar de estado.
-- `<PokemonResult />`: tarjeta con `id`, `name`, `height`, `weight`, `types` y la fecha `createdAt`.
-- Pie con enlace al repositorio privado.
+## 5. Arquitectura por capas
 
-> **Input único:** la UI expone un solo campo "Nombre del Pokémon" que se envía como `{ name }`. El backend también acepta `{ pokemon }` para compatibilidad, pero la UI no lo usa.
+`src/Contexts/Pokemon/` sigue un patrón contextual inspirado en
+arquitectura hexagonal, sin CQRS:
 
-### 5.2 Estados posibles
+```text
+ui/                         # Componentes, hooks, presenters, tema
+  ↓ depende de
+application/                # Casos de uso + puertos
+  ↓ depende de
+domain/                     # Entidades, value objects, errores (no depende de nada)
+  ↑ implementa
+infrastructure/             # Adaptadores (HTTP, mappers, schemas)
+```
 
-| Estado    | Visual                                                          |
-| --------- | --------------------------------------------------------------- |
-| `idle`    | Botón habilitado, sin banner                                    |
-| `loading` | Botón con spinner, input deshabilitado, banner "Consultando..." |
-| `success` | Banner verde con "Pokémon guardado", `<PokemonResult />`        |
-| `error`   | Banner rojo con mensaje humano, sin resultado                   |
+- `domain/model/Pokemon.ts`: entidad inmutable con `fromSnapshot`.
+- `domain/model/PokemonName.ts`: value object con normalización
+  (`trim` + `toLowerCase`) y validación de patrón.
+- `domain/model/PokemonError.ts`: jerarquía de errores tipados por
+  código (`INVALID_INPUT`, `VALIDATION_ERROR`, `POKEMON_NOT_FOUND`,
+  `POKEAPI_UNAVAILABLE`, `POKEAPI_BAD_RESPONSE`,
+  `DATABASE_UNAVAILABLE`, `NETWORK_ERROR`, `UNEXPECTED_ERROR`,
+  `INTERNAL_ERROR`).
+- `application/ports/PokemonRepository.ts`: contrato
+  `findByName(name)` y `create(name)`.
+- `application/create/PokemonCreator.ts`: caso de uso único;
+  normaliza el nombre, intenta `findByName`, y si no existe llama a
+  `create`. `findByName` cubre el caso "ya en DB" sin volver a
+  invocar al backend.
+- `infrastructure/api/`: adaptador `ApiPokemonRepository` que cumple
+  el puerto, más schemas `zod`, mapper y mapeo de errores HTTP a
+  `PokemonError`.
+- `ui/`: `HomePage` orquesta `PokemonForm`, `StatusBanner` y
+  `PokemonResult`. `useCreatePokemon` consume el caso de uso.
 
-### 5.3 Mensajes de error humanos
+`Contexts/Shared/infrastructure/` agrupa capacidades cross-context:
+
+- `config/env.ts`: parsing y validación de `import.meta.env`.
+- `http/httpErrors.ts`: tipos `HttpError`, `NetworkError`,
+  `RequestAbortedError` y `combineSignals` para componer timeout y
+  abort externo.
+
+### 5.1 Composition root
+
+`src/app/composition-root.ts` instancia el repositorio HTTP, lo
+inyecta en el caso de uso y devuelve `{ pokemonCreator }`. `App.tsx`
+pasa `pokemonCreator` a `HomePage`. Los tests usan un doble en
+memoria (`InMemoryPokemonRepository`) en lugar del adaptador HTTP.
+
+### 5.2 Estado del hook
+
+`src/Contexts/Pokemon/ui/state/CreatePokemonState.ts` define una
+unión discriminada:
+
+```ts
+type CreatePokemonState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; pokemon: Pokemon }
+  | { status: 'error'; message: string; code: string };
+```
+
+`useCreatePokemon(creator)` expone `{ state, input, setInput,
+submit, reset, abort }`. Maneja su propio `AbortController` para
+descartar resultados tardíos, pero **no** propaga la señal al
+adaptador HTTP (ver ADR `0010`).
+
+## 6. UI
+
+### 6.1 Componentes
+
+- `HomePage`: tarjeta Pokédex con cabecera, formulario, banner y
+  resultado. Maneja el error local de input vacío.
+- `PokemonForm`: input controlado/no-controlado, `maxLength=50`,
+  `aria-busy` durante la carga, botón con pokébola animada.
+- `StatusBanner`: muestra `idle / loading / success / error` con
+  clases y `aria-live` adecuados.
+- `PokemonResult`: tarjeta estilo ficha con `displayName`,
+  `pokedexNumber` (`#025`), altura en metros, peso en kilogramos,
+  tipos como chips de color y `createdAt` localizado en `es-PE`.
+
+### 6.2 Tema
+
+Definido en `src/index.css` con `@theme` y `@layer components`:
+
+- Paleta: `--color-pokedex-red`, `--color-pokedex-red-dark`,
+  `--color-pokedex-yellow`, `--color-pokedex-black`,
+  `--color-pokedex-white`.
+- Clases reutilizables: `.pokedex-card`, `.pokedex-header`,
+  `.pokedex-led`, `.field`, `.btn-primary`.
+- Animación CSS `pokeball-spin` (usada por `Pokeball` con
+  `animation` inline).
+- `pokeball` SVG inline (`Pokeball.tsx`).
+- `pokemon-badge` con paleta por tipo (`PokemonBadge.tsx`).
+- `TOKENS` numéricos en `theme/tokens.ts` (padding de número Pokédex,
+  duración del spinner, longitud máxima del input).
+
+Sin imágenes externas; todo es SVG inline o CSS. `prefers-color-scheme`
+se respeta mediante `dark:` utilities. Diseño responsive: `max-w-md
+mx-auto`, padding generoso, foco visible con `ring-2` amarillo.
+
+### 6.3 Mensajes de error humanos
+
+`PokemonApiErrorMapper` aplica el siguiente orden al mapear la
+respuesta del backend:
+
+1. Si el body encaja en el schema de error, traduce `code` (tabla
+   `BACKEND_CODE_MAP`) a un código interno.
+2. Si `code` no aparece en la tabla, conserva el `code` original si ya
+   coincide con un código interno conocido; si no, usa el fallback por
+   `statusCode`.
+3. Si el body trae `message`, lo conserva (texto crudo del backend).
+   Solo cuando el body **no** cumple el schema se usa la tabla de
+   fallback por `statusCode`.
+
+Tabla de fallback por `statusCode`:
 
 | Código HTTP       | Mensaje                                              |
 | ----------------- | ---------------------------------------------------- |
@@ -108,110 +278,217 @@ VITE_API_TIMEOUT_MS=8000
 | Network / timeout | "Sin conexión. Revisa tu red."                       |
 | Otro              | "Ocurrió un error inesperado."                       |
 
-### 5.4 Temática visual
+> Decisión registrada en ADR `0010`: se preserva el `message` del
+> backend cuando viene bien formado, a costa de mostrar texto
+> controlado por el backend.
 
-- **Paleta:** rojo (`#dc2626`), blanco, negro, amarillo (`#facc15`). Gris claro para fondos neutros.
-- **Contenedor principal** inspirado en una Pokédex: bordes redondeados, sombra marcada, cabecera roja con título blanco.
-- **Pokébola** dibujada en SVG local (sin recursos externos) como detalle decorativo o como spinner de carga.
-- **Tarjeta de resultado** estilo ficha Pokémon: nombre grande, ID en formato `#025`, tipos como "etiquetas" con color por tipo.
-- **Tipografía:** una sans-serif del sistema; el título "Pokédex Amaris" puede usar una tipografía display (ej. `Bangers` desde Google Fonts) sin penalizar el bundle.
-- **Animaciones:** mínimas; el spinner de carga es la única animación visible.
-- **Modo oscuro:** opcional mediante `prefers-color-scheme`; si se implementa, usar la misma paleta pero con fondo oscuro.
-- **Responsive:** `max-w-md mx-auto`; padding generoso; foco visible con `ring-2` amarillo.
-- **Sin imágenes externas:** todo el arte es SVG inline o CSS.
+## 7. Hook `useCreatePokemon`
 
-## 6. Hook `useCreatePokemon`
+`src/Contexts/Pokemon/ui/hooks/useCreatePokemon.ts`:
 
 ```ts
-type Status = 'idle' | 'loading' | 'success' | 'error';
-type State = { status: Status; data?: PokemonResponse; error?: string };
+type UseCreatePokemonResult = {
+  state: CreatePokemonState;
+  input: string;
+  setInput: (value: string) => void;
+  submit: () => Promise<void>;
+  reset: () => void;
+  abort: () => void;
+};
 
-interface CreatePokemonInput {
-  name?: string;
-  pokemon?: string;
-}
+function useCreatePokemon(creator: PokemonCreator): UseCreatePokemonResult;
 ```
 
 Responsabilidades:
 
-- Validar que llegue exactamente uno de los dos campos.
-- Llamar a `createPokemon` con `AbortController`.
-- Mapear respuesta a `PokemonResponse` o a `Error` con mensaje humano.
-- Exponer `submit(input)` y `reset()`.
+- Guardar `input` controlado.
+- Crear un `AbortController` por `submit`; cancelar el previo si
+  `submit` se invoca de nuevo.
+- Llamar a `creator.execute({ rawName: input })`.
+- Si el componente se desmonta o la señal se canceló, descartar el
+  resultado sin tocar el estado.
+- En éxito: `{ status: 'success', pokemon }`.
+- En error (`PokemonError` u otro `Error`): `{ status: 'error',
+message, code }`. Errores abortados se ignoran.
 
-## 7. Cliente API (`src/api/create-pokemon.ts`)
+Limitación actual: la señal no se inyecta en el adaptador HTTP. La
+cancelación evita actualizar estado con respuestas tardías, pero el
+`fetch` en vuelo no se aborta. Ver ADR `0010`.
+
+## 8. Cliente API
+
+`src/Contexts/Pokemon/infrastructure/api/ApiPokemonRepository.ts`
+implementa `PokemonRepository` con `fetch`:
+
+- `findByName(name)`:
+  `GET ${baseUrl}/pokemon/${encodeURIComponent(name.value)}`.
+  - `404` → retorna `null`.
+  - Otro status de error → `mapHttpErrorToPokemonError`.
+  - `200` con payload que pasa el schema → mapea a `Pokemon` y
+    verifica que `name` coincida con el solicitado; si no,
+    `POKEMON_NOT_FOUND` (defensa contra respuestas cruzadas).
+- `create(name)`:
+  `POST ${baseUrl}/pokemon` con `{ name: name.value }`.
+  - `201` → `{ created: true, pokemon }`.
+  - `200` → `{ created: false, pokemon }`.
+  - Otro status → `mapHttpErrorToPokemonError`.
+
+`request()` combina timeout (`combineSignals(undefined, timeoutMs)`)
+con el ciclo de `AbortController`. Errores de red se traducen a
+`NetworkError`; aborts del usuario a `RequestAbortedError`.
+
+### 8.1 DTO de respuesta (consumido por el frontend)
+
+El schema `pokeApiPokemonDtoSchema` valida la respuesta de éxito con
+forma PokéAPI (ver ADR `0010`):
 
 ```ts
-const base = import.meta.env.VITE_API_BASE_URL;
-const timeout = import.meta.env.VITE_API_TIMEOUT_MS;
+const pokeApiTypesSchema = z
+  .array(
+    z.object({
+      slot: z.number().int().positive(),
+      type: z.object({ name: z.string().min(1), url: z.string().min(1) }),
+    }),
+  )
+  .min(1);
 
-export async function createPokemon(input, signal): Promise<PokemonResponse> {
-  const res = await fetch(`${base}/pokemon`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-    signal,
-  });
-  if (!res.ok) throw await mapError(res);
-  return res.json();
+const pokeApiPokemonDtoSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().min(1),
+  height: z.number().int().nonnegative(),
+  weight: z.number().int().nonnegative(),
+  types: pokeApiTypesSchema,
+});
+```
+
+`createdAt` se extrae por separado y se tolera ausente
+(`new Date().toISOString()` como fallback). `PokemonApiMapper.toSnapshot`
+proyecta `types` a `string[]` usando `type.name`.
+
+### 8.2 Schema de error
+
+`backendErrorResponseSchema` valida el body de error uniforme
+(`statusCode`, `code`, `message`, `timestamp?`, `path?`). Si el body
+no encaja, el mapper cae a mensajes de fallback por `statusCode`.
+
+## 9. Tipos de dominio
+
+```ts
+class PokemonName {
+  readonly value: string; // normalizado
+  constructor(value: string);
+  equals(other: PokemonName): boolean;
+}
+
+class Pokemon {
+  readonly id: number;
+  readonly name: PokemonName;
+  readonly height: number; // decímetros (PokeAPI)
+  readonly weight: number; // hectogramos (PokeAPI)
+  readonly types: readonly string[];
+  readonly createdAt: Date;
+  static fromSnapshot(snapshot): Pokemon;
+}
+
+type PokemonErrorCode =
+  | 'INVALID_INPUT'
+  | 'VALIDATION_ERROR'
+  | 'POKEMON_NOT_FOUND'
+  | 'POKEAPI_UNAVAILABLE'
+  | 'POKEAPI_BAD_RESPONSE'
+  | 'DATABASE_UNAVAILABLE'
+  | 'NETWORK_ERROR'
+  | 'UNEXPECTED_ERROR'
+  | 'INTERNAL_ERROR';
+
+class PokemonError extends Error {
+  readonly code: PokemonErrorCode;
+  readonly statusCode?: number;
 }
 ```
 
-`mapError` traduce el JSON `{ statusCode, code, message }` del backend a un `Error` con `code` y `humanMessage` (mensaje humano según la tabla 5.3). El `code` se conserva para logs.
+El presenter (`src/Contexts/Pokemon/ui/presenters/PokemonPresenter.ts`)
+convierte la entidad a un `PokemonViewModel` para la UI:
 
-## 8. Tipos
-
-```ts
-export interface PokemonResponse {
-  id: number;
-  name: string;
-  height: number;
-  weight: number;
-  types: string[];
-  createdAt: string;
-}
-```
-
-## 9. Estilos
-
-- Tailwind 4 vía `@tailwindcss/vite`.
-- Tema oscuro/claro siguiendo `prefers-color-scheme` (opcional).
-- Diseño responsive: `max-w-md mx-auto`, padding generoso, foco visible con `ring-2`.
-- Paleta y componentes definidos en `src/theme/`: `colors.ts`, `pokeball.tsx` (SVG), `pokemon-badge.tsx` (chip de tipo).
-- Tipografías y tokens en `src/theme/tokens.ts`.
+- `formatHeight(dm)` → metros con 1 decimal.
+- `formatWeight(hg)` → kilogramos con 1 decimal.
+- `formatPokedexNumber(id)` → `#025` (padding a 3).
+- `formatDate(iso)` → `es-PE` con `dateStyle: medium`, `timeStyle:
+short`.
+- `capitalize(value)` → primera letra mayúscula.
 
 ## 10. Pruebas
 
-### 10.1 Unitarias
+### 10.1 Unitarias (`test/unit/`)
 
-- `format.ts`: formateo de `height`/`weight` con unidades.
-- `useCreatePokemon`: éxito (201), éxito (200 existente), error 400, error 404, error 502, error 503, abort, timeout, validación de payload.
-- `mapError`: traducción correcta por código HTTP y por `code` del backend.
+- `Pokemon.test.ts`: `fromSnapshot` con timestamps válidos e
+  inválidos, `types` congelado.
+- `PokemonName.test.ts`: normalización y reglas de validación
+  (vacío, longitud, patrón).
+- `PokemonError.test.ts`: códigos y `statusCode` opcional.
+- `PokemonCreator.test.ts`: éxito con `findByName` previo, éxito con
+  `create`, errores tipados.
+- `ApiPokemonRepository.test.ts`: `POST` con `{ name }`, status
+  `201/200/404/502`, mapeo de errores, payload inválido, `name`
+  cruzado, error de red, trailing slash.
+- `PokemonApiSchema.test.ts`: schema PokeAPI válido, payloads
+  inválidos.
+- `PokemonApiErrorMapper.test.ts`: `code` del backend, fallback por
+  `statusCode`, `message` preservado.
+- `PokemonPresenter.test.ts`: unidades y formato de fecha.
+- `httpErrors.test.ts`: `combineSignals`, abort externo, timeout,
+  `isAbortErrorLike`.
+- `PokemonForm.test.tsx`, `StatusBanner.test.tsx`,
+  `PokemonResult.test.tsx`: render y estados ARIA.
 
-### 10.2 Componentes (Testing Library)
+### 10.2 Integración (`test/integration/`)
 
-- `PokemonForm`: dispara `submit` con `{ name }`; deshabilita input y botón durante la carga; muestra spinner.
-- `StatusBanner`: muestra mensajes por estado (`idle`, `loading`, `success`, `error`).
-- `PokemonResult`: renderiza campos y formato `#025` para el ID.
+- `HomePage.test.tsx`: ciclo completo del hook + render básico.
+- `HomePageFlow.test.tsx`: input vacío, éxito, error, reset.
 
-### 10.3 Configuración
+### 10.3 Dobles (`test/doubles/`)
 
-`vitest.config.ts` con `jsdom`, `@testing-library/jest-dom`, `coverage` con `v8`.
+- `InMemoryPokemonRepository.ts`: implementa `PokemonRepository` con
+  un `Map` y flags `shouldFailFind` / `shouldFailCreate` para forzar
+  errores en los tests.
+
+### 10.4 Configuración
+
+`vitest.config.ts`:
 
 ```ts
 test: {
   environment: 'jsdom',
   setupFiles: ['./src/test-setup.ts'],
+  globals: true,
+  css: false,
   coverage: {
     provider: 'v8',
-    reporter: ['text', 'lcov'],
+    reporter: ['text', 'lcov', 'html'],
     include: ['src/**/*.{ts,tsx}'],
-    exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
+    exclude: [
+      'src/**/*.spec.{ts,tsx}',
+      'src/main.tsx',
+      'src/app/**',
+      'src/test-setup.ts',
+      'src/**/*.d.ts',
+      'src/Contexts/Pokemon/ui/theme/**',
+    ],
+    thresholds: {
+      lines: 85,
+      statements: 85,
+      functions: 85,
+      branches: 80,
+    },
   },
 }
 ```
 
-Umbral de cobertura: `lines ≥ 85`, `statements ≥ 85`, `functions ≥ 85`, `branches ≥ 80`.
+Exclusiones (ver ADR `0006`):
+
+- `src/app/**`: composition root y `App` (bootstrap).
+- `src/test-setup.ts`: registro de matchers.
+- `src/Contexts/Pokemon/ui/theme/**`: SVG y tokens visuales.
 
 ## 11. Scripts (`apps/frontend/package.json`)
 
@@ -229,32 +506,53 @@ Umbral de cobertura: `lines ≥ 85`, `statements ≥ 85`, `functions ≥ 85`, `b
 }
 ```
 
-## 12. Dockerfile
+## 12. Dockerfile y Nginx
 
-Multi-stage:
+Multi-stage (`apps/frontend/Dockerfile`):
 
-1. **build**: `node:24-alpine` + `pnpm install --frozen-lockfile` + `pnpm build`. Vite bakea `VITE_API_BASE_URL=/api` en el bundle.
-2. **runtime**: `nginx:alpine` sirviendo `dist/`, con `nginx.conf` que:
-   - Sirve `dist/` como estático.
-   - Hace proxy de `/api` → `http://backend:3000` para evitar CORS.
-   - Re-escribe `/api/pokemon` a `http://backend:3000/pokemon`.
+1. **build**: `node:24-alpine` + `corepack enable` + `pnpm install
+--frozen-lockfile --filter @pokemon-amaris/frontend...` +
+   `pnpm --filter @pokemon-amaris/frontend build`. Vite bakea
+   `VITE_API_BASE_URL=/api` en el bundle.
+2. **runtime**: `nginx:alpine` sirviendo `dist/`. Healthcheck contra
+   `/healthz`. `HEALTHCHECK` configurado con `wget -qO-
+http://localhost/healthz`.
 
-> El cliente **siempre** llama a `/api/...`; el proxy (Vite en dev, Nginx en prod) elimina el prefijo.
+`apps/frontend/nginx.conf`:
+
+- `upstream backend { server backend:3000; }`.
+- `location /api/ { proxy_pass http://backend/; ... }`: reescribe
+  cualquier `/api/*` → `http://backend:3000/*` (ver ADR `0004`).
+- `location = /healthz { return 200 "ok\n"; }`: endpoint de
+  healthcheck del contenedor.
+- `location / { try_files $uri $uri/ /index.html; }`: SPA fallback.
+
+> El cliente siempre llama a `/api/...`; el proxy (Vite en dev, Nginx
+> en prod) elimina el prefijo.
 
 ## 13. Criterios de aceptación
 
 - [ ] `pnpm dev` levanta Vite con proxy de `/api` a backend.
 - [ ] Formulario acepta y normaliza `pikachu` / `Pikachu `.
-- [ ] El cliente siempre envía `{ name }` a `/api/pokemon`.
-- [ ] Estados `idle`, `loading`, `success`, `error` correctamente diferenciados.
-- [ ] Mensajes de error comprensibles según el código HTTP.
-- [ ] Temática Pokémon sencilla aplicada (paleta, pokébola, tarjeta ficha).
+- [ ] El cliente envía `GET /api/pokemon/:name` antes del `POST` para
+      detectar duplicados.
+- [ ] Estados `idle`, `loading`, `success`, `error` correctamente
+      diferenciados en el hook.
+- [ ] `success` mapea el DTO PokeAPI con `types: [{ slot, type: {
+name, url } }]` y proyecto `types` a `string[]`.
+- [ ] `createdAt` se tolera ausente con fallback al timestamp actual.
+- [ ] Mensajes de error humanos se aplican cuando el body no cumple
+      el schema de error del backend.
+- [ ] Temática Pokémon sencilla aplicada (paleta, pokébola, tarjeta
+      ficha).
 - [ ] Diseño responsive y accesible (labels, roles, foco visible).
-- [ ] Cobertura > 85% global en frontend.
-- [ ] Build de producción con `nginx` funcional en Docker.
+- [ ] Cobertura ≥ 85% global en frontend con exclusiones declaradas.
+- [ ] Build de producción con `nginx` funcional en Docker y
+      healthcheck `/healthz` verde.
 
 ## 14. Entregables
 
 - `apps/frontend` operativo.
-- Dockerfile con `nginx` y proxy a backend.
+- Dockerfile con `nginx` y proxy `/api/*` → backend.
 - Suite de tests con cobertura.
+- Composition root manual y doble en memoria para tests.

@@ -148,7 +148,9 @@ Notas:
 
 - `db-init` ejecuta `prisma db push` y termina. El backend solo arranca después de que el esquema exista.
 - `frontend` expone 8080 hacia 80 interno (nginx).
-- `nginx.conf` proxifica `/api/pokemon` a `http://backend:3000/pokemon` y sirve `dist/`.
+  - `nginx.conf` proxifica `/api/*` a `http://backend:3000/*` (no solo
+    `/api/pokemon`), expone `/healthz` para healthcheck de Docker y
+    sirve `dist/`. Ver ADR `0004`.
 - `BACKEND_PORT` queda fuera del contrato. El host publica el contenedor en `3000` (backend) y `8080` (frontend) vía `docker-compose.yml`.
 
 ## 7. `README.md`
@@ -186,7 +188,7 @@ Secciones obligatorias:
 
 ## 8. Umbrales de cobertura
 
-Aplicados tanto en Jest como en Vitest y verificados en CI:
+Aplicados en Jest (backend) y Vitest (frontend) y verificados en CI:
 
 ```jsonc
 {
@@ -201,7 +203,38 @@ Aplicados tanto en Jest como en Vitest y verificados en CI:
 }
 ```
 
-Si una app cae por debajo, el job falla y se publica el reporte como artefacto.
+Si una app cae por debajo, el job falla y se publica el reporte como
+artefacto.
+
+Frontend (ver `apps/frontend/vitest.config.ts` y ADR `0006`):
+
+```ts
+coverage: {
+  provider: 'v8',
+  reporter: ['text', 'lcov', 'html'],
+  include: ['src/**/*.{ts,tsx}'],
+  exclude: [
+    'src/**/*.spec.{ts,tsx}',
+    'src/main.tsx',
+    'src/app/**',
+    'src/test-setup.ts',
+    'src/**/*.d.ts',
+    'src/Contexts/Pokemon/ui/theme/**',
+  ],
+  thresholds: { lines: 85, statements: 85, functions: 85, branches: 80 },
+}
+```
+
+Exclusiones:
+
+- `src/main.tsx`: bootstrap de React.
+- `src/app/**`: composition root y `App` (cableado manual).
+- `src/test-setup.ts`: registro de matchers.
+- `src/Contexts/Pokemon/ui/theme/**`: SVG y tokens visuales.
+
+El umbral es global sobre los archivos incluidos. La cobertura no
+mide scripts de generación, configuración ni archivos puramente
+visuales.
 
 ## 9. Repository Hygiene
 
