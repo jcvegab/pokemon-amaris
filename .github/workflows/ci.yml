@@ -136,7 +136,7 @@ jobs:
       PORT: 3000
       POKEAPI_BASE_URL: https://pokeapi.co/api/v2
       POKEAPI_TIMEOUT_MS: 5000
-      LOG_LEVEL: silent
+      LOG_LEVEL: fatal
       NODE_ENV: production
     steps:
       - name: Checkout
