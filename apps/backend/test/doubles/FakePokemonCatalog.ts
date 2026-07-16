@@ -1,8 +1,8 @@
 import {
   type PokemonCatalog,
   type PokemonSnapshot,
-} from '../../../../src/Contexts/Pokemon/application/ports/PokemonCatalog';
-import { type PokemonName } from '../../../../src/Contexts/Pokemon/domain/model/PokemonName';
+} from '../../src/Contexts/Pokemon/application/ports/PokemonCatalog';
+import { type PokemonName } from '../../src/Contexts/Pokemon/domain/model/PokemonName';
 
 export class FakePokemonCatalog implements PokemonCatalog {
   public calls: PokemonName[] = [];
