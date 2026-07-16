@@ -2,15 +2,18 @@
 
 ## 1. Objetivo
 
-Construir la SPA en React 19 con Vite y Tailwind 4 que consume los
-endpoints del backend (`POST /pokemon`, `GET /pokemon/:name`), gestiona
-los estados de carga, éxito y error, y refleja los resultados con
-mensajes comprensibles.
+Construir la SPA en React 19 con Vite y Tailwind 4 que consume el
+endpoint del backend (`POST /pokemon`), gestiona los estados de
+carga, éxito y error, y refleja los resultados con mensajes
+comprensibles.
 
 > Este documento describe el código construido en
 > `apps/frontend/`, no el plan original. Cambios respecto a
 > `docs/CONTRACT.md` y `docs/STRUCTURE.md` se justifican en los ADRs
-> `0009` (arquitectura contextual) y `0010` (flujo HTTP frontend).
+> `0009` (arquitectura contextual) y `0010` (DTO PokéAPI, abort
+> parcial, preservación de `message` del backend).
+> El estado del backend (CommonJS, persistencia vía `P2002`) se
+> documenta en el ADR `0011`.
 
 ## 2. Decisiones técnicas
 
@@ -146,11 +149,11 @@ Reglas:
 - `VITE_API_TIMEOUT_MS` es entero positivo en milisegundos; default
   `8000`.
 
-> El frontend siempre llama a `${VITE_API_BASE_URL}/pokemon` y
-> `${VITE_API_BASE_URL}/pokemon/:name`. En desarrollo, el dev server
-> de Vite proxifica `/api/*` a `http://localhost:3000`. En Docker,
-> Nginx proxifica `/api/*` a `http://backend:3000`. Esto evita CORS y
-> mantiene el código del cliente idéntico entre entornos.
+> El frontend siempre llama a `${VITE_API_BASE_URL}/pokemon`. En
+> desarrollo, el dev server de Vite proxifica `/api/*` a
+> `http://localhost:3000`. En Docker, Nginx proxifica `/api/*` a
+> `http://backend:3000`. Esto evita CORS y mantiene el código del
+> cliente idéntico entre entornos.
 
 ## 5. Arquitectura por capas
 
@@ -176,11 +179,12 @@ infrastructure/             # Adaptadores (HTTP, mappers, schemas)
   `DATABASE_UNAVAILABLE`, `NETWORK_ERROR`, `UNEXPECTED_ERROR`,
   `INTERNAL_ERROR`).
 - `application/ports/PokemonRepository.ts`: contrato
-  `findByName(name)` y `create(name)`.
+  `create(name)` (única operación; el frontend no consulta antes de
+  enviar).
 - `application/create/PokemonCreator.ts`: caso de uso único;
-  normaliza el nombre, intenta `findByName`, y si no existe llama a
-  `create`. `findByName` cubre el caso "ya en DB" sin volver a
-  invocar al backend.
+  normaliza el nombre y delega en `create`. Duplicados los resuelve
+  el backend con `P2002` recovery (ADR `0011`); el frontend
+  interpreta `200` y `201` sin distinguir la fuente.
 - `infrastructure/api/`: adaptador `ApiPokemonRepository` que cumple
   el puerto, más schemas `zod`, mapper y mapeo de errores HTTP a
   `PokemonError`.
@@ -320,13 +324,6 @@ cancelación evita actualizar estado con respuestas tardías, pero el
 `src/Contexts/Pokemon/infrastructure/api/ApiPokemonRepository.ts`
 implementa `PokemonRepository` con `fetch`:
 
-- `findByName(name)`:
-  `GET ${baseUrl}/pokemon/${encodeURIComponent(name.value)}`.
-  - `404` → retorna `null`.
-  - Otro status de error → `mapHttpErrorToPokemonError`.
-  - `200` con payload que pasa el schema → mapea a `Pokemon` y
-    verifica que `name` coincida con el solicitado; si no,
-    `POKEMON_NOT_FOUND` (defensa contra respuestas cruzadas).
 - `create(name)`:
   `POST ${baseUrl}/pokemon` con `{ name: name.value }`.
   - `201` → `{ created: true, pokemon }`.
@@ -361,9 +358,9 @@ const pokeApiPokemonDtoSchema = z.object({
 });
 ```
 
-`createdAt` se extrae por separado y se tolera ausente
-(`new Date().toISOString()` como fallback). `PokemonApiMapper.toSnapshot`
-proyecta `types` a `string[]` usando `type.name`.
+`createdAt` es obligatorio en el contrato público (ADR `0011`).
+El mapper `PokemonApiMapper.toSnapshot` proyecta `types` a
+`string[]` usando `type.name`.
 
 ### 8.2 Schema de error
 
@@ -426,8 +423,7 @@ short`.
 - `PokemonName.test.ts`: normalización y reglas de validación
   (vacío, longitud, patrón).
 - `PokemonError.test.ts`: códigos y `statusCode` opcional.
-- `PokemonCreator.test.ts`: éxito con `findByName` previo, éxito con
-  `create`, errores tipados.
+- `PokemonCreator.test.ts`: éxito en `create`, errores tipados.
 - `ApiPokemonRepository.test.ts`: `POST` con `{ name }`, status
   `201/200/404/502`, mapeo de errores, payload inválido, `name`
   cruzado, error de red, trailing slash.
@@ -534,13 +530,14 @@ http://localhost/healthz`.
 
 - [ ] `pnpm dev` levanta Vite con proxy de `/api` a backend.
 - [ ] Formulario acepta y normaliza `pikachu` / `Pikachu `.
-- [ ] El cliente envía `GET /api/pokemon/:name` antes del `POST` para
-      detectar duplicados.
+- [ ] El cliente solo envía `POST /api/pokemon`. No hay `GET`
+      previo; los duplicados los resuelve el backend con `P2002`
+      recovery.
 - [ ] Estados `idle`, `loading`, `success`, `error` correctamente
       diferenciados en el hook.
 - [ ] `success` mapea el DTO PokeAPI con `types: [{ slot, type: {
 name, url } }]` y proyecto `types` a `string[]`.
-- [ ] `createdAt` se tolera ausente con fallback al timestamp actual.
+- [ ] `createdAt` se exige y se renderiza formateado en `es-PE`.
 - [ ] Mensajes de error humanos se aplican cuando el body no cumple
       el schema de error del backend.
 - [ ] Temática Pokémon sencilla aplicada (paleta, pokébola, tarjeta

@@ -12,19 +12,19 @@ consumidas por `BACKEND.md`, `FRONTEND.md` y `CI.md`.
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Gestor de paquetes     | `pnpm` v10 con workspaces                                                                                                    |
 | Versión de Node        | 24 LTS                                                                                                                       |
-| Lenguaje               | TypeScript 6.x (estricto)                                                                                                    |
+| Lenguaje               | TypeScript 5.7.x (workspace root, usado por backend y tooling) + TypeScript 6.x (solo `apps/frontend`)                       |
 | Estructura             | Monorepo único (privado)                                                                                                     |
-| Formato de módulos     | ESM en backend y frontend                                                                                                    |
+| Formato de módulos     | `apps/frontend` ESM; `apps/backend` CommonJS (`"type": "commonjs"`, `module: "CommonJS"`)                                    |
 | Calidad de código      | ESLint + Prettier compartidos                                                                                                |
 | Hooks                  | Husky + lint-staged                                                                                                          |
 | Commits                | Conventional Commits                                                                                                         |
 | Ramas                  | `trunk-based` con PRs cortos                                                                                                 |
 | Prioridad de versiones | Actualizar a versiones estables compatibles si las del enunciado no existen o no son compatibles; registrar el cambio en ADR |
 
-> TypeScript 6.x se aplica como piso común, pero `apps/frontend`
-> consume `typescript@^6.0.0` y el workspace raíz fija
-> `typescript@^5.7.2` (constraint histórico). Cualquier divergencia se
-> justifica en el ADR correspondiente.
+> El workspace raíz fija `typescript@^5.7.2`; `apps/frontend`
+> consume `typescript@^6.0.0` y `apps/backend` consume el TypeScript
+> raíz (CommonJS, ver ADR `0011`). La divergencia es deliberada
+> y se documenta en los ADRs `0001` y `0011`.
 
 ## 3. Layout del monorepo
 
@@ -123,12 +123,18 @@ Cada aplicación extiende este `tsconfig.base.json` y agrega su
   - `camelCase` en variables y funciones.
   - **Excepción documentada**: las carpetas de bounded context se
     escriben en `PascalCase` (`Contexts/Pokemon`,
-    `Contexts/Shared`). Justificación en ADR `0009`.
+    `Contexts/Shared`). Justificación en ADR `0009` y ADR `0011`.
+  - **Excepción documentada**: `apps/backend/src/health/` y
+    `apps/backend/src/shared/health/` quedan fuera de
+    `Contexts/` por ahora; el indicador de salud de base de datos
+    se centraliza para no acoplar el módulo `Health` con un
+    bounded context concreto. Ver ADR `0011`.
 - **Imports**:
-  - Alias `@/...` está configurado en `apps/frontend/vite.config.ts`
-    y `apps/frontend/tsconfig.json`; el código actual usa imports
-    relativos entre archivos del mismo contexto. El alias queda
-    disponible para archivos cross-context y para código nuevo.
+  - Alias `@/...` está configurado en `apps/frontend/vite.config.ts`,
+    `apps/frontend/tsconfig.json` y `apps/backend/tsconfig.json`
+    (map a `src/`). El código actual usa imports relativos
+    entre archivos del mismo contexto; el alias queda disponible
+    para código cross-context y nuevo.
 - **Variables de entorno** validadas con `zod` en cada app.
 - **Errores**: capas de dominio lanzan errores tipados; la
   infraestructura los traduce.

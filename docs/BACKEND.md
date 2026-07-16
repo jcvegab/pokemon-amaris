@@ -1,90 +1,125 @@
-# PLAN — BACKEND
+# BACKEND — implementación as-built (Phase 2A)
+
+> Documento alineado con la implementación real. Las decisiones que
+> difieren del plan original se registran en
+> `docs/adr/0011-backend-as-built-alignment.md`.
 
 ## 1. Objetivo
 
-Implementar el servicio en NestJS 11 que consulta la PokeAPI, persiste información de Pokémon en PostgreSQL 17 mediante Prisma, y expone los endpoints `POST /pokemon` y `GET /health` con validación, manejo de errores y pruebas.
+Implementar el servicio en NestJS 11 que consulta la PokeAPI, persiste
+información de Pokémon en PostgreSQL 17 mediante Prisma, y expone los
+endpoints `POST /pokemon` y `GET /health` con validación, manejo de
+errores y pruebas.
 
 ## 2. Decisiones técnicas
 
-| Aspecto            | Decisión                                                            |
-| ------------------ | ------------------------------------------------------------------- |
-| Framework          | NestJS 11 (última estable compatible)                               |
-| Lenguaje           | TypeScript 6.x (extiende `tsconfig.base.json`)                      |
-| Runtime            | Node 24 LTS                                                         |
-| Base de datos      | PostgreSQL 17                                                       |
-| ORM                | Prisma 5.x (última estable)                                         |
-| Inicialización DB  | `prisma db push` (sin migraciones, según `DEFINITION.md`)           |
-| Cliente HTTP       | `@nestjs/axios` (`HttpService` con `axios` subyacente)              |
-| API docs           | `@nestjs/swagger` con CLI plugin, UI en `/docs`                     |
-| Health checks      | `@nestjs/terminus` con indicador propio de base de datos            |
-| Validación         | `class-validator` + `class-transformer` con `ValidationPipe` global |
-| Logger             | `nestjs-pino`                                                       |
-| Config             | `@nestjs/config` con validación `zod`                               |
-| Tests              | Jest + `ts-jest` (Prisma y PokeAPI mockeados)                       |
-| Cobertura objetivo | > 85%                                                               |
-| Arquitectura       | Hexagonal sin CQRS                                                  |
+| Aspecto            | Decisión                                                                   |
+| ------------------ | -------------------------------------------------------------------------- |
+| Framework          | NestJS 11 (última estable compatible)                                      |
+| Lenguaje           | TypeScript efectivo `^5.7.2` (workspace root)                              |
+| Runtime            | Node 24 LTS                                                                |
+| Sistema de módulos | CommonJS (`"type": "commonjs"`, `module: "CommonJS"`)                      |
+| Base de datos      | PostgreSQL 17                                                              |
+| ORM                | Prisma 5.22 (`prisma-client-js`)                                           |
+| Inicialización DB  | `prisma db push` (sin migraciones)                                         |
+| Cliente HTTP       | `@nestjs/axios` (`HttpService` con `axios` subyacente)                     |
+| API docs           | `@nestjs/swagger` con CLI plugin, UI en `/docs`                            |
+| Health checks      | `@nestjs/terminus` con indicador propio de base de datos                   |
+| Validación         | `class-validator` + `class-transformer` con `ValidationPipe` global        |
+| Logger             | `nestjs-pino` (`pino-http` con `pino-pretty` en no producción)             |
+| Config             | `@nestjs/config` con validación `zod` (`env.schema.ts`)                    |
+| Tests              | Jest + `ts-jest` (config en `jest.config.cjs`); Prisma y PokeAPI mockeados |
+| Cobertura objetivo | ≥ 85% lines/statements/functions, ≥ 80% branches                           |
+| Arquitectura       | Hexagonal sin CQRS, layout por bounded context (`Contexts/`)               |
 
 ## 3. Layout de `apps/backend`
 
-```
+```text
 apps/backend/
 ├── prisma/
 │   └── schema.prisma
 ├── src/
 │   ├── main.ts
 │   ├── app.module.ts
+│   ├── index.ts
 │   ├── config/
 │   │   └── env.schema.ts
-│   ├── shared/
-│   │   ├── errors/
-│   │   │   ├── domain.error.ts
-│   │   │   └── http-error.filter.ts
-│   │   ├── health/
-│   │   │   └── database-health.indicator.ts
-│   │   └── prisma/
-│   │       ├── prisma.module.ts
-│   │       └── prisma.service.ts
-│   ├── pokemon/
-│   │   ├── pokemon.module.ts
-│   │   ├── domain/
-│   │   │   ├── entities/pokemon.entity.ts
-│   │   │   ├── value-objects/pokemon-id.vo.ts
-│   │   │   ├── value-objects/pokemon-name.vo.ts
-│   │   │   ├── value-objects/pokemon-types.vo.ts
-│   │   │   ├── repositories/pokemon.repository.ts
-│   │   │   └── services/pokeapi.service.ts
-│   │   ├── application/
-│   │   │   ├── dto/
-│   │   │   │   ├── create-pokemon.dto.ts
-│   │   │   │   └── validators/
-│   │   │   │       ├── exactly-one-field.constraint.ts
-│   │   │   │       └── pokemon-name-field.decorator.ts
-│   │   │   ├── usecases/create-pokemon.usecase.ts
-│   │   │   └── mappers/pokemon.mapper.ts
-│   │   ├── infrastructure/
-│   │   │   ├── pokeapi/
-│   │   │   │   ├── pokeapi-http.module.ts
-│   │   │   │   └── pokeapi-http.adapter.ts
-│   │   │   ├── repositories/prisma-pokemon.repository.ts
-│   │   │   └── persistence/pokemon.mapper.ts
-│   │   └── interfaces/
-│   │       └── http/
-│   │           ├── pokemon.controller.ts
-│   │           └── responses/pokemon.response.ts
-│   └── health/
-│       ├── health.module.ts
-│       └── health.controller.ts
+│   ├── health/                                  # Excepción top-level (ver ADR 0011)
+│   │   ├── health.module.ts
+│   │   └── health.controller.ts
+│   ├── shared/health/                           # Excepción top-level (ver ADR 0011)
+│   │   └── database-health.indicator.ts
+│   └── Contexts/
+│       ├── Shared/
+│       │   └── infrastructure/
+│       │       ├── http/HttpErrorFilter.ts
+│       │       └── persistence/prisma/
+│       │           ├── PrismaModule.ts
+│       │           └── PrismaService.ts
+│       └── Pokemon/
+│           ├── domain/
+│           │   ├── PokemonRepository.ts
+│           │   └── model/
+│           │       ├── Pokemon.ts
+│           │       ├── PokemonId.ts
+│           │       ├── PokemonName.ts
+│           │       └── PokemonTypes.ts
+│           ├── application/
+│           │   ├── create/PokemonCreator.ts
+│           │   ├── errors/PokemonApplicationErrors.ts
+│           │   └── ports/PokemonCatalog.ts
+│           └── infrastructure/
+│               ├── dependency-injection/
+│               │   ├── PokemonModule.ts
+│               │   └── PokemonTokens.ts
+│               ├── http/
+│               │   ├── PokemonPostController.ts
+│               │   ├── PokemonResponseMapper.ts
+│               │   ├── dto/
+│               │   │   ├── CreatePokemonRequest.ts
+│               │   │   ├── ExactlyOneFieldConstraint.ts
+│               │   │   └── PokemonNameField.ts
+│               │   └── response/PokemonResponse.ts
+│               ├── persistence/prisma/
+│               │   ├── PrismaPokemonMapper.ts
+│               │   └── PrismaPokemonRepository.ts
+│               └── pokeapi/
+│                   ├── PokeApiHttpModule.ts
+│                   ├── PokeApiPokemonCatalog.ts
+│                   ├── PokeApiPokemonMapper.ts
+│                   └── PokeApiPokemonSchema.ts
 ├── test/
+│   ├── doubles/
+│   │   ├── FakePokemonCatalog.ts
+│   │   └── InMemoryPokemonRepository.ts
 │   ├── unit/
+│   │   ├── ExactlyOneFieldConstraint.test.ts
+│   │   ├── HttpErrorFilter.test.ts
+│   │   ├── PokeApiPokemonCatalog.test.ts
+│   │   ├── PokeApiPokemonSchema.test.ts
+│   │   ├── PokemonCreator.test.ts
+│   │   ├── PokemonResponseMapper.test.ts
+│   │   ├── PrismaPokemonMapper.test.ts
+│   │   └── PrismaPokemonRepository.test.ts
 │   └── integration/
+│       ├── HealthHttp.test.ts
+│       └── PokemonHttp.test.ts
 ├── .env.example
 ├── nest-cli.json
 ├── tsconfig.json
 ├── tsconfig.build.json
+├── jest.config.cjs
+├── jest.setup.cjs
 ├── package.json
-├── jest.config.ts
+├── Dockerfile
 └── README.md
 ```
+
+> `src/health/` y `src/shared/health/` quedan fuera de
+> `Contexts/` deliberadamente: el indicador de DB se reutiliza por
+> el módulo `Health` y centralizar el indicador evita un acoplamiento
+> del bounded context `Health` con `Contexts/Shared`. Ver
+> ADR `0011` §"Consequences".
 
 ## 4. Modelo de datos (Prisma)
 
@@ -92,7 +127,8 @@ apps/backend/
 
 ```prisma
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
 }
 
 datasource db {
@@ -114,12 +150,15 @@ model Pokemon {
 ```
 
 - `id`: ID oficial de PokeAPI (1..1024+). PK natural (no autoincrement).
-- `name`: nombre normalizado en minúsculas.
-- `height` / `weight`: valores crudos de PokeAPI.
+- `name`: nombre normalizado en minúsculas; `UNIQUE`.
+- `height` / `weight`: valores crudos de PokeAPI (decímetros /
+  hectogramos).
 - `types`: arreglo de strings con los tipos del Pokémon.
-- **Convención**: `camelCase` en el modelo Prisma, `snake_case` en columnas PostgreSQL vía `@map` (TS-friendly, DB-idiomático).
-- `@@map("pokemons")`: tabla en plural (`pokemons`).
-- Columnas resultantes: `id`, `name`, `height`, `weight`, `types` (`text[]`), `created_at`, `updated_at`.
+- **Convención**: `camelCase` en el modelo Prisma, `snake_case` en
+  columnas PostgreSQL vía `@map` (TS-friendly, DB-idiomático).
+- `@@map("pokemons")`: tabla en plural.
+- Columnas resultantes: `id`, `name`, `height`, `weight`, `types`
+  (`text[]`), `created_at`, `updated_at`.
 
 ## 5. Endpoint `POST /pokemon`
 
@@ -137,18 +176,23 @@ Acepta ambos formatos:
 
 Reglas:
 
-- Normalización: `trim()` + `toLowerCase()`.
-- Solo uno de los dos campos; si faltan ambos o ambos llegan, `400 Bad Request`.
+- Normalización: `trim()` + `toLowerCase()` (aplicada en el DTO vía
+  `Transform`).
+- Solo uno de los dos campos; si faltan ambos o ambos llegan,
+  `400 Bad Request` (`VALIDATION_ERROR`).
 - Validación de longitud (1..50), patrón `^[a-z0-9-]+$`.
+- Whitelist activa: cualquier campo extra se rechaza con `400`.
 
 ### 5.1.1 DTO estricto
 
+`src/Contexts/Pokemon/infrastructure/http/dto/CreatePokemonRequest.ts`:
+
 ```ts
 import { Validate } from 'class-validator';
-import { ExactlyOneFieldConstraint } from './validators/exactly-one-field.constraint';
-import { PokemonNameField } from './validators/pokemon-name-field.decorator';
+import { ExactlyOneFieldConstraint } from './ExactlyOneFieldConstraint';
+import { PokemonNameField } from './PokemonNameField';
 
-export class CreatePokemonDto {
+export class CreatePokemonRequest {
   @PokemonNameField('name')
   name?: string;
 
@@ -156,11 +200,14 @@ export class CreatePokemonDto {
   pokemon?: string;
 
   @Validate(ExactlyOneFieldConstraint, ['name', 'pokemon'])
-  private readonly _oneOf?: never;
+  readonly _oneOf?: never;
 }
 ```
 
 ### 5.1.2 Decorador de campo Pokémon
+
+`src/Contexts/Pokemon/infrastructure/http/dto/PokemonNameField.ts`
+(resumen):
 
 ```ts
 import { applyDecorators } from '@nestjs/common';
@@ -186,6 +233,8 @@ export function PokemonNameField(field: 'name' | 'pokemon'): PropertyDecorator {
 
 ### 5.1.3 Validador `oneOf`
 
+`src/Contexts/Pokemon/infrastructure/http/dto/ExactlyOneFieldConstraint.ts`:
+
 ```ts
 import {
   ValidationArguments,
@@ -209,7 +258,9 @@ export class ExactlyOneFieldConstraint implements ValidatorConstraintInterface {
 }
 ```
 
-### 5.1.4 `ValidationPipe` global (estricto)
+### 5.1.4 `ValidationPipe` global
+
+`src/main.ts` aplica:
 
 ```ts
 app.useGlobalPipes(
@@ -229,13 +280,17 @@ Efectos:
 
 - `whitelist`: descarta propiedades no declaradas en el DTO.
 - `forbidNonWhitelisted`: rechaza con `400` si llegan campos extra.
-- `forbidUnknownValues`: falla si llegan objetos sin prototipo controlado.
+- `forbidUnknownValues`: falla si llegan objetos sin prototipo
+  controlado.
 - `transform`: aplica `Type`/`Transform` declarados en el DTO.
 
 ### 5.2 Respuesta exitosa
 
-- `201 Created`: cuando el Pokémon no existía en la base de datos y se acaba de persistir.
-- `200 OK`: cuando el Pokémon ya existía en la base de datos y se devuelve el registro persistido. **No** se vuelve a consultar PokeAPI para registros existentes.
+- `201 Created`: cuando el Pokémon no existía en la base de datos y
+  se acaba de persistir.
+- `200 OK`: cuando el Pokémon ya existía en la base de datos y se
+  devuelve el registro persistido. **No** se vuelve a consultar
+  PokeAPI para registros existentes.
 
 Cuerpo de respuesta (idéntico en ambos casos):
 
@@ -250,30 +305,24 @@ Cuerpo de respuesta (idéntico en ambos casos):
 }
 ```
 
-> **Manejo de concurrencia:** la operación de escritura usa `upsert` (Prisma) por `name` para evitar inserciones duplicadas cuando dos requests concurrentes intentan crear el mismo Pokémon. Si la fila ya existe por `name`, se trata como `200 OK`.
-
-```json
-{
-  "id": 25,
-  "name": "pikachu",
-  "height": 4,
-  "weight": 60,
-  "types": ["electric"],
-  "createdAt": "2026-07-16T12:00:00.000Z"
-}
-```
+> **Manejo de concurrencia:** `PrismaPokemonRepository.save()`
+> ejecuta `prisma.pokemon.create()` y captura el código `P2002`
+> (unique constraint en `name`). En conflicto, vuelve a leer por
+> `name` y retorna `{ pokemon, created: false }`. Si la fila no se
+> encuentra tras el conflicto, propaga `PokemonPersistenceUnavailableError`.
 
 ### 5.3 Errores
 
-| Código | Cuándo                                                                     |
-| ------ | -------------------------------------------------------------------------- |
-| 400    | Body inválido (sin nombre, ambos, formato incorrecto, campo extra)         |
-| 404    | PokeAPI no encuentra el Pokémon                                            |
-| 502    | PokeAPI no responde, responde con `5xx`, o responde con formato inesperado |
-| 503    | No se puede escribir/leer en PostgreSQL                                    |
-| 500    | Error inesperado                                                           |
+| Código | Cuándo                                                                    |
+| ------ | ------------------------------------------------------------------------- |
+| 400    | Body inválido (sin nombre, ambos, formato incorrecto, campo extra)        |
+| 404    | PokeAPI no encuentra el Pokémon (`POKEMON_NOT_FOUND`)                     |
+| 502    | PokeAPI no responde, responde con `5xx`, o respuesta con formato inválido |
+| 503    | No se puede escribir/leer en PostgreSQL (`DATABASE_UNAVAILABLE`)          |
+| 500    | Error inesperado (`INTERNAL_ERROR`)                                       |
 
-**Esquema uniforme de error** (devuelto por `HttpErrorFilter`):
+**Esquema uniforme de error** (devuelto por
+`Contexts/Shared/infrastructure/http/HttpErrorFilter.ts`):
 
 ```json
 {
@@ -286,12 +335,16 @@ Cuerpo de respuesta (idéntico en ambos casos):
 ```
 
 - `statusCode`: HTTP status.
-- `code`: código de error estable y uppercase (`INVALID_POKEMON_NAME`, `POKEMON_NOT_FOUND`, `POKEAPI_UNAVAILABLE`, `POKEAPI_BAD_RESPONSE`, `DATABASE_UNAVAILABLE`, `INTERNAL_ERROR`, `VALIDATION_ERROR`).
-- `message`: siempre `string` en la respuesta pública. Los detalles de validación interna se mantienen solo en logs.
+- `code`: código de error estable y uppercase (`INVALID_POKEMON_NAME`,
+  `POKEMON_NOT_FOUND`, `POKEAPI_UNAVAILABLE`, `POKEAPI_BAD_RESPONSE`,
+  `DATABASE_UNAVAILABLE`, `INTERNAL_ERROR`, `VALIDATION_ERROR`).
+- `message`: siempre `string` en la respuesta pública. Los detalles
+  de validación interna se mantienen solo en logs. El filtro aplica
+  mensajes públicos de la tabla `PUBLIC_ERROR_MESSAGES` para los
+  errores tipados; el mensaje original queda en el log estructurado
+  con `requestId`.
 
 ## 6. Endpoint `GET /health`
-
-Endpoint liviano con `@nestjs/terminus` para validar que el servidor responde y que PostgreSQL está accesible.
 
 ### 6.1 Request
 
@@ -303,9 +356,14 @@ GET /health
 
 ### 6.2 Validaciones
 
-- **Server**: si NestJS puede ejecutar el handler, Terminus marca el servicio como disponible.
-- **Database**: `DatabaseHealthIndicator` expone el check semántico `database` y oculta que internamente usa Prisma.
-- No consulta PokeAPI; health solo valida dependencias necesarias para servir datos persistidos.
+- **Server**: si NestJS puede ejecutar el handler, Terminus marca el
+  servicio como disponible.
+- **Database**: `DatabaseHealthIndicator` (en `src/shared/health/`)
+  expone el check semántico `database` y oculta que internamente usa
+  Prisma. La implementación corre `prisma.$queryRaw\`SELECT 1\``y
+reporta`up`o`down`.
+- No consulta PokeAPI; health solo valida dependencias necesarias
+  para servir datos persistidos.
 
 ### 6.3 Respuesta exitosa (`200 OK`)
 
@@ -337,7 +395,7 @@ GET /health
 }
 ```
 
-### 6.5 `health/health.controller.ts` (borrador)
+### 6.5 `health/health.controller.ts`
 
 ```ts
 import { Controller, Get } from '@nestjs/common';
@@ -355,8 +413,8 @@ export class HealthController {
 
   @Get()
   @HealthCheck()
-  @ApiOkResponse({ description: 'Servidor y base de datos disponibles' })
-  @ApiServiceUnavailableResponse({ description: 'Base de datos no disponible' })
+  @ApiOkResponse({ description: 'Server and database available' })
+  @ApiServiceUnavailableResponse({ description: 'Database unavailable' })
   check(): Promise<HealthCheckResult> {
     return this.health.check([() => this.database.isHealthy('database')]);
   }
@@ -368,7 +426,7 @@ export class HealthController {
 ```ts
 import { Injectable } from '@nestjs/common';
 import { HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../Contexts/Shared/infrastructure/persistence/prisma/PrismaService';
 
 @Injectable()
 export class DatabaseHealthIndicator {
@@ -395,8 +453,8 @@ export class DatabaseHealthIndicator {
 ```ts
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
+import { PrismaModule } from '../Contexts/Shared/infrastructure/persistence/prisma/PrismaModule';
 import { DatabaseHealthIndicator } from '../shared/health/database-health.indicator';
-import { PrismaModule } from '../shared/prisma/prisma.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -411,101 +469,175 @@ export class HealthModule {}
 
 ```ts
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { LoggerModule } from 'nestjs-pino';
+import { PokemonModule } from './Contexts/Pokemon/infrastructure/dependency-injection/PokemonModule';
+import { PrismaModule } from './Contexts/Shared/infrastructure/persistence/prisma/PrismaModule';
+import { envSchema } from './config/env.schema';
 import { HealthModule } from './health/health.module';
-import { PokemonModule } from './pokemon/pokemon.module';
 
 @Module({
-  imports: [HealthModule, PokemonModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: (raw) => envSchema.parse(raw),
+    }),
+    LoggerModule.forRoot({/* pinoHttp: requestId, redact, etc. */}),
+    PrismaModule,
+    HealthModule,
+    PokemonModule,
+  ],
 })
 export class AppModule {}
 ```
 
+`LoggerModule` genera un `requestId` por request (reutiliza
+`x-request-id` si el cliente lo envía) y redacta
+`req.headers.authorization`, `req.headers.cookie` y
+`req.body.password` con `[redacted]`.
+
 ## 7. Flujo de negocio
 
-1. `PokemonController` recibe el DTO.
-2. `CreatePokemonUseCase`:
-   1. Normaliza el nombre (`trim()` + `toLowerCase()`).
-   2. Busca en `PokemonRepository` por `name`.
-   3. Si existe, retorna el registro persistido con `200 OK` y un flag `created: false`.
-   4. Si no existe, consulta `PokeApiService` por `name`.
-   5. Si PokeAPI devuelve 404, lanza `PokemonNotFoundError` (404).
-   6. Si PokeAPI no responde o responde 5xx, lanza `PokeApiUnavailableError` (502).
-   7. Si la respuesta no pasa la validación `zod`, lanza `PokeApiBadResponseError` (502).
-   8. Mapea la respuesta validada a entidad de dominio.
-   9. Persiste con `PokemonRepository.upsertByName` (idempotente por `name`).
-   10. Si la DB falla, lanza `DatabaseUnavailableError` (503).
-   11. Retorna la entidad con flag `created: true` para que el controlador emita `201 Created`.
+1. `PokemonPostController` recibe `CreatePokemonRequest`.
+2. `PokemonCreator.execute({ rawName })`:
+   1. Normaliza el nombre (`trim()` + `toLowerCase()`) construyendo
+      un `PokemonName`. Falla con
+      `InvalidPokemonNameApplicationError` si la validación
+      semántica lo rechaza (`400 INVALID_POKEMON_NAME`).
+   2. Llama a `repository.findByName(name)`.
+   3. Si existe, retorna `{ pokemon, created: false }` y el
+      controlador responde `200 OK`.
+   4. Si no existe, llama a `catalog.search(name)`.
+   5. Si PokeAPI responde 404, el catálogo lanza
+      `PokemonNotFoundError` (`404 POKEMON_NOT_FOUND`).
+   6. Si PokeAPI no responde o responde 5xx, lanza
+      `PokemonCatalogUnavailableError` (`502 POKEAPI_UNAVAILABLE`).
+   7. Si la respuesta no pasa `pokeApiPokemonSchema`, lanza
+      `PokemonCatalogBadResponseError` (`502 POKEAPI_BAD_RESPONSE`).
+   8. Si el `name` del snapshot difiere del solicitado, lanza
+      `PokemonNotFoundError` (defensa contra respuestas
+      mal correlacionadas).
+   9. Construye la entidad `Pokemon` y llama a
+      `repository.save(pokemon)`.
+   10. Si la DB falla, `PrismaPokemonRepository` envuelve el error
+       en `PokemonPersistenceUnavailableError` (`503
+DATABASE_UNAVAILABLE`).
+   11. Retorna `{ pokemon, created: true }`; el controlador responde
+       `201 Created`.
 
 ## 8. Adaptador PokeAPI
 
 - URL: `GET {POKEAPI_BASE_URL}/pokemon/{name}`.
-- Módulo: `PokeapiHttpModule` (propio del bounded context) en `pokemon/infrastructure/pokeapi/pokeapi-http.module.ts` con `baseURL: POKEAPI_BASE_URL` y `timeout: POKEAPI_TIMEOUT_MS`.
-- Inyección: `PokeapiHttpAdapter` recibe `HttpService` por constructor y usa `firstValueFrom(httpService.get(...))`.
-- Cancelación: `HttpService` soporta `signal` de `AbortController` además del `timeout` configurado en el módulo.
-- Validación de respuesta con `zod` para evitar `datos faltantes` o `formato inesperado`.
-- Mapeo de campos a entidad de dominio (`id`, `name`, `height`, `weight`, `types`).
+- Módulo: `PokeApiHttpModule` (propio del bounded context) con
+  `baseURL: POKEAPI_BASE_URL`, `timeout: POKEAPI_TIMEOUT_MS`,
+  `headers: { 'Content-Type': 'application/json' }`,
+  `maxRedirects: 0` y `validateStatus: status >= 200 && < 300`.
+- Inyección: `PokeApiPokemonCatalog` (adaptador del puerto
+  `PokemonCatalog`) recibe `HttpService` por constructor y usa
+  `firstValueFrom(http.get(...))`.
+- Mapeo: `PokeApiPokemonSchema` valida con `zod` los campos
+  persistidos y `PokeApiPokemonMapper.toSnapshot()` proyecta
+  `types: [{ slot, type: { name, url } }]` a `types: string[]`.
+- Cancelación: la implementación actual no propaga `AbortSignal`
+  al request HTTP. Si el cliente cancela, la request puede
+  completarse o expirar por `timeout`. La cancelación real es
+  una mejora futura (ver ADR `0010`).
 
-### 8.1 `pokemon/infrastructure/pokeapi/pokeapi-http.module.ts`
+### 8.1 `Contexts/Pokemon/infrastructure/pokeapi/PokeApiHttpModule.ts`
 
 ```ts
+import { HttpModule as NestHttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HttpModule as NestHttpModule } from '@nestjs/axios';
-import { PokeapiHttpAdapter } from './pokeapi-http.adapter';
+import { PokeApiPokemonCatalog } from './PokeApiPokemonCatalog';
 
 @Module({
   imports: [
     NestHttpModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        baseURL: config.get<string>('POKEAPI_BASE_URL'),
-        timeout: config.get<number>('POKEAPI_TIMEOUT_MS'),
-        headers: { 'Content-Type': 'application/json' },
-        maxRedirects: 0,
-        validateStatus: (status) => status >= 200 && status < 300,
-      }),
+      useFactory: (config: ConfigService) => {
+        const baseURL = config.getOrThrow<string>('POKEAPI_BASE_URL');
+        const timeout = config.get<number>('POKEAPI_TIMEOUT_MS') ?? 5000;
+        return {
+          baseURL,
+          timeout,
+          headers: { 'Content-Type': 'application/json' },
+          maxRedirects: 0,
+          validateStatus: (status: number) => status >= 200 && status < 300,
+        };
+      },
     }),
   ],
-  providers: [PokeapiHttpAdapter],
-  exports: [PokeapiHttpAdapter],
+  providers: [PokeApiPokemonCatalog],
+  exports: [PokeApiPokemonCatalog, NestHttpModule],
 })
-export class PokeapiHttpModule {}
+export class PokeApiHttpModule {}
 ```
 
-### 8.2 `pokemon/pokemon.module.ts`
+### 8.2 `Contexts/Pokemon/infrastructure/dependency-injection/PokemonModule.ts`
 
 ```ts
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../shared/prisma/prisma.module';
-import { PokeapiHttpModule } from './infrastructure/pokeapi/pokeapi-http.module';
-import { PokemonController } from './interfaces/http/pokemon.controller';
-import { CreatePokemonUseCase } from './application/usecases/create-pokemon.usecase';
-import { PrismaPokemonRepository } from './infrastructure/repositories/prisma-pokemon.repository';
+import { Module, type Provider } from '@nestjs/common';
+import { PokemonCreator } from '../../application/create/PokemonCreator';
+import { PokemonPostController } from '../http/PokemonPostController';
+import { PokeApiHttpModule } from '../pokeapi/PokeApiHttpModule';
+import { PokeApiPokemonCatalog } from '../pokeapi/PokeApiPokemonCatalog';
+import { PrismaPokemonRepository } from '../persistence/prisma/PrismaPokemonRepository';
+import { POKEMON_CATALOG, POKEMON_CREATOR, POKEMON_REPOSITORY } from './PokemonTokens';
+
+const pokemonRepositoryProvider: Provider = {
+  provide: POKEMON_REPOSITORY,
+  useClass: PrismaPokemonRepository,
+};
+
+const pokemonCatalogProvider: Provider = {
+  provide: POKEMON_CATALOG,
+  useClass: PokeApiPokemonCatalog,
+};
+
+const pokemonCreatorProvider: Provider = {
+  provide: POKEMON_CREATOR,
+  inject: [POKEMON_REPOSITORY, POKEMON_CATALOG],
+  useFactory: (repository, catalog) => new PokemonCreator(repository, catalog),
+};
 
 @Module({
-  imports: [ConfigModule, PrismaModule, PokeapiHttpModule],
-  controllers: [PokemonController],
+  imports: [PokeApiHttpModule],
+  controllers: [PokemonPostController],
   providers: [
-    CreatePokemonUseCase,
-    { provide: 'PokeapiPort', useClass: PokeapiHttpAdapter },
-    { provide: 'PokemonRepository', useClass: PrismaPokemonRepository },
+    PrismaPokemonRepository,
+    pokemonRepositoryProvider,
+    pokemonCatalogProvider,
+    pokemonCreatorProvider,
   ],
 })
 export class PokemonModule {}
 ```
 
-### 8.3 Mapeo de respuesta PokeAPI (`pokeapi-pokemon.schema.ts`)
+`PokemonTokens.ts` exporta los símbolos:
 
-Mapeo TypeScript + Zod del endpoint `GET https://pokeapi.co/api/v2/pokemon/<name>`. Solo valida los campos que el dominio persiste (`id`, `name`, `height`, `weight`, `types`); el resto de la respuesta de PokeAPI se ignora por stripping implícito de `z.object()`.
+```ts
+export const POKEMON_REPOSITORY = Symbol('PokemonRepository');
+export const POKEMON_CATALOG = Symbol('PokemonCatalog');
+export const POKEMON_CREATOR = Symbol('PokemonCreator');
+```
+
+### 8.3 Mapeo de respuesta PokeAPI (`PokeApiPokemonSchema.ts`)
+
+Mapeo TypeScript + Zod del endpoint
+`GET https://pokeapi.co/api/v2/pokemon/<name>`. Solo valida los campos
+que el dominio persiste (`id`, `name`, `height`, `weight`, `types`);
+el resto de la respuesta de PokeAPI se ignora por stripping
+implícito de `z.object()`.
 
 ```ts
 import { z } from 'zod';
 
 const namedApiResourceSchema = z.object({
   name: z.string().min(1),
-  url: z.url(),
+  url: z.string().min(1),
 });
 
 export const pokeApiPokemonSchema = z.object({
@@ -529,39 +661,55 @@ export type PokeApiPokemon = z.infer<typeof pokeApiPokemonSchema>;
 Reglas de validación:
 
 - `id`: entero positivo (1..1024+).
-- `name`: string no vacío, igual al nombre consultado.
-- `height` / `weight`: enteros no negativos (decímetros / hectogramos en PokeAPI).
-- `types`: arreglo no vacío de `{ slot, type: { name, url } }`; se proyecta a `string[]` con `type.name`.
-- Cualquier campo adicional de PokeAPI (`sprites`, `moves`, `abilities`, `cries`, etc.) es descartado por Zod sin error.
+- `name`: string no vacío.
+- `height` / `weight`: enteros no negativos (decímetros /
+  hectogramos en PokeAPI).
+- `types`: arreglo no vacío de `{ slot, type: { name, url } }`;
+  `PokeApiPokemonMapper.toSnapshot()` proyecta a `string[]` con
+  `type.name`.
+- Cualquier campo adicional de PokeAPI (`sprites`, `moves`,
+  `abilities`, `cries`, etc.) se descarta por Zod sin error.
 
-### 8.4 `pokeapi-http.adapter.ts`
+### 8.4 `PokeApiPokemonCatalog.ts` (resumen)
 
 ```ts
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { PokeapiPort } from '../domain/services/pokeapi.service';
-import { PokemonName } from '../domain/value-objects/pokemon-name.vo';
-import { pokeApiPokemonSchema } from './pokeapi-pokemon.schema';
-
 @Injectable()
-export class PokeapiHttpAdapter implements PokeapiPort {
+export class PokeApiPokemonCatalog implements PokemonCatalog {
   constructor(private readonly http: HttpService) {}
 
-  async fetchByName(name: PokemonName, signal?: AbortSignal) {
-    const { data } = await firstValueFrom(this.http.get(`/pokemon/${name.value}`, { signal }));
-    const parsed = pokeApiPokemonSchema.safeParse(data);
-    if (!parsed.success) throw new Error('PokeApiBadResponse');
-    return {
-      id: parsed.data.id,
-      name: parsed.data.name,
-      height: parsed.data.height,
-      weight: parsed.data.weight,
-      types: parsed.data.types.map((t) => t.type.name),
-    };
+  async search(name: PokemonName): Promise<PokemonSnapshot> {
+    const response = await this.fetchResponse(name);
+    const parsed = pokeApiPokemonSchema.safeParse(response.data);
+    if (!parsed.success) {
+      this.logger.warn({
+        msg: 'PokeAPI response failed schema',
+        name: name.value,
+        issues: parsed.error.issues,
+      });
+      throw new PokemonCatalogBadResponseError('PokeAPI response did not match expected schema');
+    }
+    return PokeApiPokemonMapper.toSnapshot(parsed.data);
+  }
+
+  private async fetchResponse(name: PokemonName): Promise<{ data: unknown }> {
+    try {
+      const request = this.http.get(`/pokemon/${encodeURIComponent(name.value)}`);
+      return await firstValueFrom(request);
+    } catch (err) {
+      throw mapHttpError(err, name);
+    }
   }
 }
 ```
+
+`mapHttpError` traduce `AxiosError`:
+
+- `response.status === 404` → `PokemonNotFoundError`.
+- `response.status >= 500` → `PokemonCatalogUnavailableError`.
+- `!response` (sin respuesta, error de red, timeout) →
+  `PokemonCatalogUnavailableError`.
+- `AbortError` → `PokemonCatalogUnavailableError('PokeAPI request
+aborted')`.
 
 ## 9. OpenAPI / Swagger
 
@@ -569,23 +717,28 @@ export class PokeapiHttpAdapter implements PokeapiPort {
 - CLI plugin habilitado en `nest-cli.json`:
   ```json
   {
-    "collection": "@nestjs/schematics",
     "compilerOptions": {
       "plugins": ["@nestjs/swagger"]
     }
   }
   ```
-- `main.ts` monta `SwaggerModule.setup('docs', app, document)` con `SwaggerModule.createDocument(app, config)`.
+- `main.ts` monta `SwaggerModule.setup('docs', app, document)` con
+  `SwaggerModule.createDocument(app, config)`.
 - `config` usa `DocumentBuilder` con:
   - `title: 'Pokemon API'`
   - `description: 'Servicio para crear y consultar Pokémon desde PokeAPI.'`
   - `version: '1.0.0'`
   - Tag `pokemon`.
-- Decoradores:
-  - `CreatePokemonDto` con `@PokemonNameField()` para `name`/`pokemon` y `oneOf` entre ambos campos.
+- Decoradores presentes:
+  - `CreatePokemonRequest` con `@PokemonNameField()` para
+    `name`/`pokemon` y `oneOf` entre ambos campos.
   - `PokemonResponse` con `@ApiProperty` por campo.
-  - `PokemonController.create` con `@ApiOperation`, `@ApiResponse({ status: 201 })`, `@ApiResponse({ status: 200, description: 'Ya existía' })`, `@ApiResponse({ status: 400 })`, `@ApiResponse({ status: 404 })`, `@ApiResponse({ status: 502 })`, `@ApiResponse({ status: 503 })`.
-  - `HealthController.check` con `@ApiOkResponse({ status: 200 })` y `@ApiServiceUnavailableResponse({ status: 503 })`.
+  - `PokemonPostController.create` con `@ApiOperation`,
+    `@ApiCreatedResponse`, `@ApiOkResponse`,
+    `@ApiBadRequestResponse` y
+    `@ApiServiceUnavailableResponse`.
+  - `HealthController.check` con `@ApiOkResponse` y
+    `@ApiServiceUnavailableResponse`.
 - Spec servida en:
   - JSON: `GET /docs-json`
   - UI: `GET /docs`
@@ -593,92 +746,132 @@ export class PokeapiHttpAdapter implements PokeapiPort {
 
 ## 10. Manejo de errores
 
-- `DomainError` base; subclases: `InvalidPokemonNameError`, `PokemonNotFoundError`, `PokeApiUnavailableError`, `PokeApiBadResponseError`, `DatabaseUnavailableError`.
-- `HttpErrorFilter` traduce a códigos HTTP y oculta stack traces en producción.
-- `Pino` registra `requestId`, `pokemonName`, `durationMs`, `outcome`.
+- Los errores viven en
+  `Contexts/Pokemon/application/errors/PokemonApplicationErrors.ts`:
+  - `PokemonNotFoundError` (404 `POKEMON_NOT_FOUND`).
+  - `PokemonCatalogUnavailableError` (502 `POKEAPI_UNAVAILABLE`).
+  - `PokemonCatalogBadResponseError` (502 `POKEAPI_BAD_RESPONSE`).
+  - `PokemonPersistenceUnavailableError` (503
+    `DATABASE_UNAVAILABLE`).
+- `InvalidPokemonNameApplicationError` (en `PokemonCreator.ts`)
+  → 400 `INVALID_POKEMON_NAME`.
+- `HttpErrorFilter` (en
+  `Contexts/Shared/infrastructure/http/HttpErrorFilter.ts`)
+  traduce a códigos HTTP y aplica mensajes públicos de la tabla
+  `PUBLIC_ERROR_MESSAGES`. Los stack traces se omiten en
+  producción. La respuesta de `Health` (Terminus) se respeta tal
+  cual sin reescribirla.
+- `nestjs-pino` registra `requestId`, `method`, `path`, `status`,
+  `code`, `message` y (en no producción) el `stack` de la
+  excepción.
 
-### 10.1 `shared/errors/domain.error.ts`
+### 10.1 `PokemonApplicationErrors.ts`
 
 ```ts
-export abstract class DomainError extends Error {
-  abstract readonly code: string;
-  abstract readonly httpStatus: number;
-  constructor(message: string) {
-    super(message);
-    this.name = new.target.name;
+export class PokemonNotFoundError extends Error {
+  readonly code = 'POKEMON_NOT_FOUND';
+  constructor(name: string) {
+    super(`Pokemon not found: ${name}`);
+    this.name = 'PokemonNotFoundError';
   }
 }
 
-export class InvalidPokemonNameError extends DomainError {
-  readonly code = 'INVALID_POKEMON_NAME';
-  readonly httpStatus = 400;
-}
-export class PokemonNotFoundError extends DomainError {
-  readonly code = 'POKEMON_NOT_FOUND';
-  readonly httpStatus = 404;
-}
-export class PokeApiUnavailableError extends DomainError {
+export class PokemonCatalogUnavailableError extends Error {
   readonly code = 'POKEAPI_UNAVAILABLE';
-  readonly httpStatus = 502;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PokemonCatalogUnavailableError';
+  }
 }
-export class PokeApiBadResponseError extends DomainError {
+
+export class PokemonCatalogBadResponseError extends Error {
   readonly code = 'POKEAPI_BAD_RESPONSE';
-  readonly httpStatus = 502;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PokemonCatalogBadResponseError';
+  }
 }
-export class DatabaseUnavailableError extends DomainError {
+
+export class PokemonPersistenceUnavailableError extends Error {
   readonly code = 'DATABASE_UNAVAILABLE';
-  readonly httpStatus = 503;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PokemonPersistenceUnavailableError';
+  }
 }
 ```
 
-### 10.2 `shared/errors/http-error.filter.ts`
+### 10.2 `Contexts/Shared/infrastructure/http/HttpErrorFilter.ts` (resumen)
 
 ```ts
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
-import { Request, Response } from 'express';
-import { DomainError } from './domain.error';
-
 @Catch()
 export class HttpErrorFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpErrorFilter.name);
-
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const res = ctx.getResponse<Response>();
-    const req = ctx.getRequest<Request>();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request & { id?: string }>();
 
-    let status = 500;
-    let code = 'INTERNAL_ERROR';
-    let message = 'Unexpected error';
-
-    if (exception instanceof DomainError) {
-      status = exception.httpStatus;
-      code = exception.code;
-      message = exception.message;
-    } else if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const r = exception.getResponse();
-      message = typeof r === 'string' ? r : ((r as any).message ?? message);
-      code = (r as any)?.error ?? code;
+    if (process.env['LOG_LEVEL'] === 'silent') {
+      this.writeResponse(response, request, this.mapException(exception));
+      return;
     }
 
+    const mapping = this.mapException(exception);
+    const errorBody: ErrorBody = {
+      statusCode: mapping.status,
+      code: mapping.code,
+      message: mapping.message,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    };
+
     this.logger.error({
-      requestId: (req as any).id,
-      method: req.method,
-      path: req.url,
-      status,
-      code,
-      message,
-      stack: process.env.NODE_ENV === 'production' ? undefined : (exception as Error)?.stack,
+      requestId: request.id,
+      method: request.method,
+      path: request.url,
+      status: mapping.status,
+      code: mapping.code,
+      message: exception instanceof Error ? exception.message : mapping.message,
+      ...(process.env['NODE_ENV'] !== 'production' && exception instanceof Error
+        ? { stack: exception.stack }
+        : {}),
     });
 
-    res.status(status).json({
-      statusCode: status,
-      code,
-      message,
-      timestamp: new Date().toISOString(),
-      path: req.url,
-    });
+    response.status(mapping.status).json(errorBody);
+  }
+
+  private mapException(exception: unknown): ErrorMapping {
+    if (exception instanceof InvalidPokemonNameApplicationError) {
+      return { status: 400, code: 'INVALID_POKEMON_NAME', message: exception.message };
+    }
+    if (exception instanceof PokemonNotFoundError) {
+      return { status: 404, code: 'POKEMON_NOT_FOUND', message: PUBLIC_ERROR_MESSAGES.notFound };
+    }
+    if (exception instanceof PokemonCatalogUnavailableError) {
+      return {
+        status: 502,
+        code: 'POKEAPI_UNAVAILABLE',
+        message: PUBLIC_ERROR_MESSAGES.catalogUnavailable,
+      };
+    }
+    if (exception instanceof PokemonCatalogBadResponseError) {
+      return {
+        status: 502,
+        code: 'POKEAPI_BAD_RESPONSE',
+        message: PUBLIC_ERROR_MESSAGES.catalogBadResponse,
+      };
+    }
+    if (exception instanceof PokemonPersistenceUnavailableError) {
+      return {
+        status: 503,
+        code: 'DATABASE_UNAVAILABLE',
+        message: PUBLIC_ERROR_MESSAGES.persistenceUnavailable,
+      };
+    }
+    if (exception instanceof HttpException) {
+      return mapHttpException(exception);
+    }
+    return { status: 500, code: 'INTERNAL_ERROR', message: PUBLIC_ERROR_MESSAGES.internal };
   }
 }
 ```
@@ -686,18 +879,20 @@ export class HttpErrorFilter implements ExceptionFilter {
 ### 10.3 Wiring (`main.ts`)
 
 ```ts
-import { HttpErrorFilter } from './shared/errors/http-error.filter';
+import { HttpErrorFilter } from './Contexts/Shared/infrastructure/http/HttpErrorFilter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
+  app.useGlobalPipes(new ValidationPipe({/* ... */}));
   app.useGlobalFilters(new HttpErrorFilter());
-  // ... resto
+  app.enableShutdownHooks();
+  // swagger
+  await app.listen(Number(process.env['PORT'] ?? 3000));
 }
 ```
 
-Alternativa: registrar el filter como `APP_FILTER` en `AppModule` para que el DI reciba `Pino` y `ConfigService` por constructor.
-
-## 11. Configuración (`env.schema.ts`)
+## 11. Configuración (`config/env.schema.ts`)
 
 ```ts
 import { z } from 'zod';
@@ -705,54 +900,100 @@ import { z } from 'zod';
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_URL: z.string().url(),
-  POKEAPI_BASE_URL: z.string().url(),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  POKEAPI_BASE_URL: z.string().url('POKEAPI_BASE_URL must be a valid URL'),
   POKEAPI_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
+
+export type EnvVars = z.infer<typeof envSchema>;
 ```
 
-> **Nota:** la variable `PORT` es la única que el backend lee. `BACKEND_PORT` queda fuera del contrato; los puertos host se definen en `docker-compose.yml`.
+> `PORT` es la única variable de puerto que el backend lee.
+> `BACKEND_PORT` queda fuera del contrato; los puertos host se
+> definen en `docker-compose.yml`.
 
 ## 12. Pruebas
 
 ### 12.1 Unitarias (`test/unit/`)
 
-- `create-pokemon.usecase.spec.ts`: éxito (201), duplicado (200), errores de PokeAPI (502, 404), errores de DB (503).
-- `pokeapi-http.adapter.spec.ts`: parseo, timeout, payload inválido, 404.
-- `prisma-pokemon.repository.spec.ts`: con `PrismaClient` mockeado (incluye `upsertByName`).
-- Value objects: validación de `pokemonName`, `id`, `pokemonTypes`.
-- `exactly-one-field.constraint.spec.ts`: solo `name`, solo `pokemon`, ambos, ninguno, campos extra.
-- `health.controller.spec.ts`: DB disponible retorna `200` con indicadores `up`; error Prisma retorna `503` con `database.status: "down"`.
-- `http-error.filter.spec.ts`: mapeo de cada subclase de `DomainError` a su `httpStatus` y `code`.
+- `PokemonCreator.test.ts`: éxito (`created: true`), duplicado
+  (`created: false`), `P2002` recovery, error 404, 502 timeout,
+  502 payload inválido, 503 lectura, 503 escritura, nombre
+  inválido.
+- `PokeApiPokemonCatalog.test.ts`: respuesta válida, 404, 5xx,
+  timeout, payload inválido, sin respuesta.
+- `PokeApiPokemonSchema.test.ts`: payload válido, payloads con
+  campos faltantes/extra.
+- `PrismaPokemonRepository.test.ts`: `findByName`, `save` feliz,
+  `save` con `P2002` recupera, `save` con error genérico lanza
+  `PokemonPersistenceUnavailableError`.
+- `PrismaPokemonMapper.test.ts`: dominio → Prisma → dominio.
+- `ExactlyOneFieldConstraint.test.ts`: solo `name`, solo
+  `pokemon`, ambos, ninguno, campos extra.
+- `PokemonResponseMapper.test.ts`: entidad → DTO.
+- `HttpErrorFilter.test.ts`: cada subclase de error se mapea al
+  `httpStatus` y `code` correctos; la respuesta de Health no se
+  reescribe.
+- Value objects: `PokemonId`, `PokemonName`, `PokemonTypes` (en
+  `src/Contexts/Pokemon/domain/model/*.test.ts`).
 
 ### 12.2 Integración (`test/integration/`)
 
-- `pokemon.controller.spec.ts`: usa `Test.createTestingModule` con `PinoHttp`, `PrismaService` y `PokeapiPort` mockeados. **No** se conecta a PostgreSQL real en CI.
-  - `POST /pokemon` con `{ name }` válido y DB vacía → 201.
-  - `POST /pokemon` con `{ pokemon }` válido y DB vacía → 201.
-  - `POST /pokemon` con `{ name }` y registro existente (mock) → 200.
-  - Body vacío → 400.
-  - Ambos campos → 400.
-  - Campo extra `foo` → 400 (whitelist).
-  - `name` con 51 caracteres → 400.
+- `PokemonHttp.test.ts` reemplaza los tokens `POKEMON_REPOSITORY` y
+  `POKEMON_CATALOG` por dobles en memoria
+  (`InMemoryPokemonRepository`, `FakePokemonCatalog`).
+  - `POST /pokemon` con `{ name }` y catálogo vacío → `201`.
+  - `POST /pokemon` con `{ pokemon }` y catálogo vacío → `201`.
+  - `POST /pokemon` con `{ name }` y registro existente → `200`
+    (sin invocar el catálogo).
+  - Body vacío → `400`.
+  - Ambos campos → `400`.
+  - Campo extra `foo` → `400` (whitelist).
+  - `name` con 51 caracteres → `400`.
   - `name` con mayúsculas → normaliza a minúsculas.
-  - `name` con espacios al inicio/fin → normaliza con trim.
-- `health.controller.spec.ts`:
-  - `GET /health` con DB mockeada disponible → 200 y `status: "ok"`, `details.database.status: "up"`.
-  - `GET /health` con DB mockeada no disponible → 503 y `status: "error"`, `details.database.status: "down"`.
+  - `name` con espacios al inicio/fin → normaliza con `trim`.
+- `HealthHttp.test.ts`:
+  - `GET /health` con `PrismaService` mockeado disponible → `200`
+    y `details.database.status: "up"`.
+  - `GET /health` con `PrismaService` mockeado que falla → `503` y
+    `details.database.status: "down"`.
 
 ### 12.3 Jest
 
-```ts
-// jest.config.ts (resumen)
-export default {
+`apps/backend/jest.config.cjs`:
+
+```js
+/** @type {import('jest').Config} */
+module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  rootDir: '.',
   roots: ['<rootDir>/src', '<rootDir>/test'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
+  },
+  testMatch: ['**/?(*.)+(spec|test).ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.module.ts',
+    '!src/main.ts',
+    '!src/**/*.d.ts',
+    '!src/**/index.ts',
+    '!src/config/**',
+    '!src/**/PokemonResponse.ts',
+    '!src/**/PokemonTokens.ts',
+  ],
   coverageDirectory: 'coverage',
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.module.ts', '!src/main.ts'],
-  coverageThreshold: { global: { lines: 85, statements: 85, functions: 85, branches: 80 } },
+  coverageReporters: ['text', 'lcov', 'html'],
+  coverageThreshold: {
+    global: { lines: 85, statements: 85, functions: 85, branches: 80 },
+  },
+  clearMocks: true,
+  setupFiles: ['<rootDir>/jest.setup.cjs'],
 };
 ```
 
@@ -764,10 +1005,11 @@ export default {
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "jest",
-    "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test": "node node_modules/jest/bin/jest.js --config jest.config.cjs",
+    "test:watch": "node node_modules/jest/bin/jest.js --config jest.config.cjs --watch",
+    "test:cov": "node node_modules/jest/bin/jest.js --config jest.config.cjs --coverage",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push --skip-generate",
   },
@@ -776,31 +1018,55 @@ export default {
 
 ## 14. Dockerfile
 
-Multi-stage:
+Multi-stage sobre `node:24-alpine`:
 
-1. **build**: `node:24-alpine` + `pnpm install --frozen-lockfile` + `pnpm prisma generate` + `pnpm build`.
-2. **runtime**: `node:24-alpine` con usuario no-root, expone `3000`, `CMD ["node", "dist/main.js"]`.
-3. Espera activa a la DB mediante `dockerize` o script de retry.
+1. **builder**: `corepack enable` → `pnpm install --frozen-lockfile
+--filter @pokemon-amaris/backend...` →
+   `pnpm --filter @pokemon-amaris/backend prisma:generate` →
+   `pnpm --filter @pokemon-amaris/backend build`.
+2. **runtime**: instala solo dependencias de producción con
+   `pnpm install --frozen-lockfile --filter
+@pokemon-amaris/backend... --prod` + `prisma:generate`. Crea el
+   usuario no-root `app`. `EXPOSE 3000` y healthcheck
+   `wget -qO- http://localhost:3000/health`.
+3. **CMD**: el runtime ejecuta primero
+   `node ./node_modules/prisma/build/index.js db push
+--skip-generate --schema=./prisma/schema.prisma` y luego
+   `node dist/main.js`. Esto elimina la necesidad de un servicio
+   `db-init` separado; `docker-compose.yml` puede incluirlo como
+   paso explícito adicional, pero es opcional.
 
 ## 15. Criterios de aceptación
 
-- [ ] `POST /pokemon` acepta `{ name }` y `{ pokemon }` con normalización.
+- [ ] `POST /pokemon` acepta `{ name }` y `{ pokemon }` con
+      normalización.
 - [ ] Pokémon nuevo responde `201 Created`.
-- [ ] Pokémon existente responde `200 OK` y **no** consulta PokeAPI.
-- [ ] `upsert` evita duplicados bajo concurrencia.
-- [ ] Campos persistidos: `id`, `name`, `height`, `weight`, `types`.
-- [ ] `prisma db push` inicializa el esquema en Docker.
-- [ ] Errores HTTP coherentes con el contrato (400/404/502/503/500) y esquema `{ statusCode, code, message, timestamp, path }`.
-- [ ] `GET /health` retorna `200` si Terminus marca `database` como `up`.
-- [ ] `GET /health` retorna `503` si Terminus marca `database` como `down`.
-- [ ] Logs estructurados con `requestId`.
-- [ ] Cobertura total > 85% (líneas, statements, funciones; branches ≥ 80%).
-- [ ] Tests unitarios e integración pasan en CI (PostgreSQL **no** se usa en CI; todo mockeado).
+- [ ] Pokémon existente responde `200 OK` y **no** consulta
+      PokeAPI.
+- [ ] Concurrencia: ante dos `POST` simultáneos con el mismo
+      `name`, `P2002` recovery deja una única fila y el segundo
+      responde `200 OK` con el mismo `createdAt`.
+- [ ] Campos persistidos: `id`, `name`, `height`, `weight`,
+      `types`, `createdAt`, `updatedAt`.
+- [ ] `prisma db push` inicializa el esquema (en `db-init` o en el
+      `CMD` del Dockerfile runtime).
+- [ ] Errores HTTP coherentes con el contrato (400/404/502/503/500)
+      y esquema `{ statusCode, code, message, timestamp, path }`.
+- [ ] `GET /health` retorna `200` si Terminus marca `database`
+      como `up`.
+- [ ] `GET /health` retorna `503` si Terminus marca `database`
+      como `down`.
+- [ ] Logs estructurados con `requestId` y `pino-pretty` fuera de
+      producción.
+- [ ] Cobertura total ≥ 85% (líneas, statements, funciones;
+      branches ≥ 80%).
+- [ ] Tests unitarios e integración pasan en CI (PostgreSQL **no**
+      se usa en CI; todo mockeado).
 - [ ] Lint sin errores.
 
 ## 16. Entregables
 
 - `apps/backend` operativo con `pnpm dev`.
 - `prisma/schema.prisma` consistente con la sección 4.
-- `Dockerfile` multi-stage.
+- `Dockerfile` multi-stage con `prisma db push` en runtime.
 - Suite de pruebas con cobertura reportada.

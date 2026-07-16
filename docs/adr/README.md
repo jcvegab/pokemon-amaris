@@ -20,10 +20,10 @@ Index of every ADR in this repo. Each ADR follows the
 
 ## Extensions (Phase 2B)
 
-| ID   | Title                                                       | Status   | Owner    |
-| ---- | ----------------------------------------------------------- | -------- | -------- |
-| 0009 | Frontend contextual architecture (domain/application/ui)    | Accepted | Frontend |
-| 0010 | Frontend HTTP flow (GET previo, DTO PokéAPI, abort parcial) | Accepted | Frontend |
+| ID   | Title                                                     | Status             | Owner    |
+| ---- | --------------------------------------------------------- | ------------------ | -------- |
+| 0009 | Frontend contextual architecture (domain/application/ui)  | Accepted           | Frontend |
+| 0010 | Frontend HTTP flow (DTO PokéAPI, abort parcial, mensajes) | Accepted (revised) | Frontend |
 
 `0000-contract-freezing` is the umbrella: it freezes the Phase 0 contract
 in `docs/CONTRACT.md` and binds the rest of the project to it. Any change
@@ -31,6 +31,19 @@ requires a new ADR.
 
 `0009` and `0010` are post-Phase 0 extensions that document the
 implementation actually shipped in `apps/frontend/`.
+
+## As-built alignment (Phase 2A)
+
+| ID   | Title                                                                            | Status   | Owner   |
+| ---- | -------------------------------------------------------------------------------- | -------- | ------- |
+| 0011 | Backend as-built alignment (Contexts layout, CommonJS, TS 5.7, `P2002` recovery) | Accepted | Backend |
+
+`0011` records the actual state of `apps/backend/` landed in Phase 2A
+and supersedes any plan document that contradicts it (`BACKEND.md`,
+`CONTRACT.md`, `STRUCTURE.md`, `DIAGRAM.md`, `EXECUTION.md`,
+`ACCEPTANCE.md`, plus ADRs `0001`, `0002`, `0003`, `0004`, `0006`,
+`0009`, `0010`). See `0011-backend-as-built-alignment.md` for the
+full delta and the change-control rules.
 
 ## Files
 
@@ -45,6 +58,15 @@ implementation actually shipped in `apps/frontend/`.
 - `0008-repository-hygiene.md`
 - `0009-frontend-contextual-architecture.md`
 - `0010-frontend-http-flow.md`
+- `0011-backend-as-built-alignment.md`
+
+## Status values
+
+- `Accepted`: vigente.
+- `Accepted (revised)`: vigente, con cambios respecto a su
+  redacción original (registrados en el propio ADR).
+- `Proposed`, `Superseded by NNNN`, `Deprecated`: ver el cuerpo
+  del ADR.
 
 ## Conventions
 

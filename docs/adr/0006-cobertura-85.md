@@ -1,7 +1,8 @@
 # ADR 0006 — Coverage threshold 85% / 80%
 
 - **Status:** Accepted
-- **Source:** `docs/CI.md` §8, `docs/EXECUTION.md` §10
+- **Source:** `docs/CI.md` §8, `docs/EXECUTION.md` §10,
+  `docs/adr/0011-backend-as-built-alignment.md`
 
 ## Context
 
@@ -16,10 +17,20 @@ and fails CI if violated.
   - `statements` ≥ 85
   - `functions` ≥ 85
   - `branches` ≥ 80
-- Backend: enforced in `jest.config.ts` via `coverageThreshold.global`.
-- Frontend: enforced in `vitest.config.ts` via `coverage.thresholds`.
+- Backend: enforced in `apps/backend/jest.config.cjs` via
+  `coverageThreshold.global` (CommonJS project, no `jest.config.ts`).
+- Frontend: enforced in `apps/frontend/vitest.config.ts` via
+  `coverage.thresholds`.
 - CI publishes the `coverage/` folder of each app as an artefact so
   reviewers can drill in.
+- Backend exclusions (`apps/backend/jest.config.cjs`):
+  - `src/**/*.module.ts`: Nest module wiring.
+  - `src/main.ts`: bootstrap.
+  - `src/**/*.d.ts`: type declarations.
+  - `src/**/index.ts`: barrel files.
+  - `src/config/**`: runtime configuration loader.
+  - `src/**/PokemonResponse.ts`: pure data shape for Swagger.
+  - `src/**/PokemonTokens.ts`: only `Symbol` constants.
 - Frontend exclusions (`apps/frontend/vitest.config.ts`):
   - `src/main.tsx`: bootstrap de React.
   - `src/app/**`: composition root + `App` (cableado manual, sin
@@ -42,3 +53,7 @@ and fails CI if violated.
   los archivos puramente visuales y de cableado, que se prueban
   manualmente o mediante tests de integración que ya cuentan para
   la cobertura del hook, presenter y componentes.
+- La cobertura backend excluye los archivos de cableado de Nest
+  (módulos, bootstrap) y de configuración; los flujos de
+  aplicación (`PokemonCreator`, adaptadores, filtros) y de
+  dominio (entidades, value objects) sí se miden.

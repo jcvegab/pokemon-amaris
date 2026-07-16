@@ -1,7 +1,8 @@
 # ADR 0003 — Hexagonal architecture (no CQRS)
 
 - **Status:** Accepted
-- **Source:** `docs/BACKEND.md` §2, §3, §7, §8; ADR `0009`
+- **Source:** `docs/BACKEND.md` §2, §3, §7, §8; ADR `0009`;
+  ADR `0011`
 
 ## Context
 
@@ -12,21 +13,43 @@ domain.
 
 ## Decision
 
-- Hexagonal layout under `apps/backend/src/pokemon/`:
-  - `domain/` — entities, value objects, ports (`PokemonRepository`,
-    `PokeapiPort`).
-  - `application/` — use cases, DTOs, mappers.
-  - `infrastructure/` — Prisma repository, PokeAPI HTTP adapter.
-  - `interfaces/http/` — controllers and response shapes.
-- No CQRS: read and write go through the same use case. The duplicate
-  path is just a fast read of the existing row.
-- DI: ports injected as tokens (`'PokeapiPort'`, `'PokemonRepository'`)
-  to make mocking trivial.
+- Hexagonal layout under `apps/backend/src/Contexts/Pokemon/`:
+  - `domain/` — entities, value objects, port `PokemonRepository`.
+  - `application/` — use case (`create/PokemonCreator.ts`),
+    port (`ports/PokemonCatalog.ts`),
+    typed errors (`errors/PokemonApplicationErrors.ts`).
+  - `infrastructure/` — Prisma repository
+    (`persistence/prisma/PrismaPokemonRepository.ts`),
+    PokeAPI HTTP adapter
+    (`pokeapi/PokeApiPokemonCatalog.ts`,
+    `PokeApiHttpModule.ts`, `PokeApiPokemonSchema.ts`,
+    `PokeApiPokemonMapper.ts`),
+    HTTP entry point
+    (`http/PokemonPostController.ts`,
+    `http/PokemonResponseMapper.ts`, `http/dto/*`).
+  - `dependency-injection/` — `PokemonModule.ts` and
+    `PokemonTokens.ts` (DI tokens).
+- `apps/backend/src/Contexts/Shared/infrastructure/` carries the
+  cross-context plumbing: `http/HttpErrorFilter.ts` and
+  `persistence/prisma/{PrismaModule,PrismaService}.ts`.
+- The legacy `src/health/` and `src/shared/health/` folders are
+  kept outside the bounded contexts. The `DatabaseHealthIndicator`
+  depends on `Contexts/Shared/.../PrismaService` and is wired by
+  `src/health/health.module.ts` (see ADR `0011`).
+- No CQRS: read and write go through the same use case
+  (`PokemonCreator.execute`). The duplicate path is a fast read
+  of the existing row.
+- DI: ports injected as `Symbol` tokens
+  (`POKEMON_REPOSITORY`, `POKEMON_CATALOG`, `POKEMON_CREATOR`)
+  exported from `PokemonTokens.ts`; this makes mocking trivial
+  and avoids stringly-typed identifiers.
 
 ## Consequences
 
 - Tests run without PostgreSQL or network; everything is mocked.
-- The `CreatePokemonUseCase` is the single place that knows about the
+  Integration tests substitute the tokens with
+  `InMemoryPokemonRepository` and `FakePokemonCatalog`.
+- `PokemonCreator` is the single place that knows about the
   read-then-write sequence.
 - Domain code never imports from `@nestjs/*`, `@prisma/client`, or
   `axios`. Easier to test, easier to swap.

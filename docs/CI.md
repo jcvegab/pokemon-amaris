@@ -41,7 +41,10 @@ Jobs (todos se ejecutan en cada PR y push a `main`; **no** se usa detección de 
    - `pnpm install --frozen-lockfile` (raíz).
    - `pnpm --filter @pokemon-amaris/backend lint`.
    - `pnpm --filter @pokemon-amaris/backend test:cov`.
-   - Sube `apps/backend/coverage` como artefacto.
+   - `pnpm --filter @pokemon-amaris/backend build` (genera
+     `apps/backend/dist/`; el job `backend-openapi` lo reutiliza).
+   - Sube `apps/backend/coverage` y `apps/backend/dist` como
+     artefactos.
    - Falla si cobertura < umbral.
 2. **frontend**:
    - `pnpm install --frozen-lockfile` (raíz).
@@ -146,12 +149,19 @@ volumes:
 
 Notas:
 
-- `db-init` ejecuta `prisma db push` y termina. El backend solo arranca después de que el esquema exista.
+- `db-init` ejecuta `prisma db push` y termina. El backend solo
+  arranca después de que el esquema exista.
+- El runtime del backend también ejecuta `prisma db push` en su
+  `CMD` (ver `apps/backend/Dockerfile` y ADR `0011`). Si
+  `db-init` se conserva, el push del runtime es idempotente;
+  eliminar `db-init` también es válido.
 - `frontend` expone 8080 hacia 80 interno (nginx).
-  - `nginx.conf` proxifica `/api/*` a `http://backend:3000/*` (no solo
-    `/api/pokemon`), expone `/healthz` para healthcheck de Docker y
-    sirve `dist/`. Ver ADR `0004`.
-- `BACKEND_PORT` queda fuera del contrato. El host publica el contenedor en `3000` (backend) y `8080` (frontend) vía `docker-compose.yml`.
+  - `nginx.conf` proxifica `/api/*` a `http://backend:3000/*` (no
+    solo `/api/pokemon`), expone `/healthz` para healthcheck de
+    Docker y sirve `dist/`. Ver ADR `0004`.
+- `BACKEND_PORT` queda fuera del contrato. El host publica el
+  contenedor en `3000` (backend) y `8080` (frontend) vía
+  `docker-compose.yml`.
 
 ## 7. `README.md`
 

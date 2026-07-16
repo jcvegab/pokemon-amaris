@@ -2,15 +2,17 @@
 
 - **Status:** Accepted
 - **Source:** `docs/FRONTEND.md` §2, §3, §5; `docs/CONTRACT.md` §3;
-  `docs/STRUCTURE.md` §7
+  `docs/STRUCTURE.md` §7; `docs/adr/0003-arquitectura-hexagonal.md`;
+  `docs/adr/0011-backend-as-built-alignment.md`
 
 ## Context
 
 `apps/frontend/` agrupa una SPA React 19 que consume el backend de
 Pokémon. La separación de capas existente en
-`apps/backend/src/pokemon/` (ADR `0003`) es la base conceptual del
-proyecto, pero el plan original proponía para el frontend un layout
-plano (`src/api`, `src/components`, `src/hooks`, `src/lib`).
+`apps/backend/src/Contexts/Pokemon/` (ADR `0003`, ajustada por
+ADR `0011`) es la base conceptual del proyecto, pero el plan
+original proponía para el frontend un layout plano
+(`src/api`, `src/components`, `src/hooks`, `src/lib`).
 
 La implementación actual adopta un patrón equivalente al backend
 organizado por **bounded context**: cada contexto agrupa
@@ -51,8 +53,10 @@ Convención de naming documentada:
 - Carpetas de bounded context: `PascalCase` (`Contexts/Pokemon`).
 - Archivos de capa: `PascalCase` cuando exportan una clase, entidad
   o componente principal (`Pokemon.ts`, `PokemonForm.tsx`).
-- Alias `@/...` configurado para código nuevo; el código actual
-  utiliza imports relativos dentro del mismo contexto.
+- Alias `@/...` configurado en `apps/frontend/tsconfig.json` y
+  `apps/backend/tsconfig.json`; el código actual utiliza imports
+  relativos dentro del mismo contexto. El alias queda disponible
+  para archivos cross-context y para código nuevo.
 
 ## Consequences
 

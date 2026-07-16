@@ -51,38 +51,38 @@ nice.
 | 2A.8  | Normalization: `Pikachu ` / `  PIKACHU  ` → `pikachu`.                                               | [ ]    |
 | 2A.9  | PokeAPI `404` → `404`; timeout/`5xx` → `502`; invalid payload → `502`.                               | [ ]    |
 | 2A.10 | DB down on read or write → `503`.                                                                    | [ ]    |
-| 2A.11 | Concurrent upsert mock test: one row in DB after racing requests.                                    | [ ]    |
+| 2A.11 | `P2002` recovery in `PrismaPokemonRepository.save()` keeps a single row and returns `200`.           | [ ]    |
 | 2A.12 | Error body matches `ErrorResponse` for every error path.                                             | [ ]    |
 | 2A.13 | `GET /health` returns `200` with `database.status=up` when Prisma mock succeeds.                     | [ ]    |
 | 2A.14 | `GET /health` returns `503` with `database.status=down` when Prisma mock throws.                     | [ ]    |
 | 2A.15 | Swagger served at `/docs` and `/docs-json`.                                                          | [ ]    |
-| 2A.16 | `nestjs-pino` logger emits `requestId`, `pokemonName`, `outcome`.                                    | [ ]    |
-| 2A.17 | Dockerfile multi-stage builds from `node:24-alpine`.                                                 | [ ]    |
-| 2A.18 | `GET /pokemon/:name` returns `200` con registro persistido, `404` si no existe y PokeAPI tampoco.    | [ ]    |
+| 2A.16 | `nestjs-pino` logger emits `requestId`; `pokemonName` and `outcome` on `POST /pokemon` success.      | [ ]    |
+| 2A.17 | Dockerfile multi-stage builds from `node:24-alpine`; runtime CMD runs `prisma db push` then app.     | [ ]    |
+| 2A.18 | Backend exposes only `POST /pokemon` and `GET /health` (ADR `0011`).                                 | [ ]    |
 | 2A.19 | Single commit `feat(backend): implement pokemon service` on `feat/phase-2a-backend`.                 | [ ]    |
 
 ## Phase 2B — Frontend
 
-| #     | Criterion                                                                                                                | Status |
-| ----- | ------------------------------------------------------------------------------------------------------------------------ | ------ |
-| 2B.1  | `pnpm --filter @pokemon-amaris/frontend lint` passes.                                                                    | [ ]    |
-| 2B.2  | `pnpm --filter @pokemon-amaris/frontend test:cov` passes with global coverage ≥ 85/85/85/80 (exclusiones declaradas).    | [ ]    |
-| 2B.3  | `pnpm --filter @pokemon-amaris/frontend build` succeeds.                                                                 | [ ]    |
-| 2B.4  | Client siempre envía `{ name }` al `POST` `${VITE_API_BASE_URL}/pokemon` (no `{ pokemon }` en la UI).                    | [ ]    |
-| 2B.5  | Normalización de `pikachu`, `Pikachu `, `  PIKACHU  ` en el formulario (via `PokemonName`).                              | [ ]    |
-| 2B.6  | Hook expone estados `idle` / `loading` / `success` / `error` con unión discriminada.                                     | [ ]    |
-| 2B.7  | `GET ${VITE_API_BASE_URL}/pokemon/:name` se ejecuta antes del `POST` para detectar duplicados (ADR 0010).                | [ ]    |
-| 2B.8  | Hook descarta resultados tardíos vía `AbortController` por `submit`; cancelación del request no se inyecta al HTTP.      | [ ]    |
-| 2B.9  | Respuesta de éxito validada con schema PokeAPI (`types: [{ slot, type: { name, url } }]`) y proyectada a `string[]`.     | [ ]    |
-| 2B.10 | `createdAt` se tolera ausente con fallback a `new Date().toISOString()`.                                                 | [ ]    |
-| 2B.11 | Errors 400, 404, 502, 503, timeout, network: `message` del backend se conserva si el body encaja; fallback humano si no. | [ ]    |
-| 2B.12 | Composition root en `src/app/composition-root.ts`; tests usan `InMemoryPokemonRepository`.                               | [ ]    |
-| 2B.13 | Temática Pokémon: paleta rojo/blanco/negro/amarillo, pokébola SVG, ficha, spinner; sin imágenes externas.                | [ ]    |
-| 2B.14 | Accessibility: roles ARIA, foco visible, labels asociados en `PokemonForm`.                                              | [ ]    |
-| 2B.15 | Responsive: mobile (≤ 480px) y desktop (≥ 1024px) layouts presentes.                                                     | [ ]    |
-| 2B.16 | Vite dev proxy `/api/*` → `http://localhost:3000`.                                                                       | [ ]    |
-| 2B.17 | Frontend Dockerfile multi-stage con Nginx; `nginx.conf` proxifica `/api/*` → `http://backend:3000/*` y `/healthz`.       | [ ]    |
-| 2B.18 | Single commit `feat(frontend): build pokemon themed interface` on `feat/phase-2b-frontend`.                              | [ ]    |
+| #     | Criterion                                                                                                                             | Status |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2B.1  | `pnpm --filter @pokemon-amaris/frontend lint` passes.                                                                                 | [ ]    |
+| 2B.2  | `pnpm --filter @pokemon-amaris/frontend test:cov` passes with global coverage ≥ 85/85/85/80 (exclusiones declaradas).                 | [ ]    |
+| 2B.3  | `pnpm --filter @pokemon-amaris/frontend build` succeeds.                                                                              | [ ]    |
+| 2B.4  | Client siempre envía `{ name }` al `POST` `${VITE_API_BASE_URL}/pokemon` (no `{ pokemon }` en la UI).                                 | [ ]    |
+| 2B.5  | Normalización de `pikachu`, `Pikachu `, `  PIKACHU  ` en el formulario (via `PokemonName`).                                           | [ ]    |
+| 2B.6  | Hook expone estados `idle` / `loading` / `success` / `error` con unión discriminada.                                                  | [ ]    |
+| 2B.7  | El cliente solo envía `POST /pokemon`. No hay `GET` previo; los duplicados los resuelve el backend con `P2002` recovery (ADR `0011`). | [ ]    |
+| 2B.8  | Hook descarta resultados tardíos vía `AbortController` por `submit`; cancelación del request no se inyecta al HTTP.                   | [ ]    |
+| 2B.9  | Respuesta de éxito validada con schema PokeAPI (`types: [{ slot, type: { name, url } }]`) y proyectada a `string[]`.                  | [ ]    |
+| 2B.10 | `createdAt` se exige y se renderiza formateado en `es-PE`.                                                                            | [ ]    |
+| 2B.11 | Errors 400, 404, 502, 503, timeout, network: `message` del backend se conserva si el body encaja; fallback humano si no.              | [ ]    |
+| 2B.12 | Composition root en `src/app/composition-root.ts`; tests usan `InMemoryPokemonRepository`.                                            | [ ]    |
+| 2B.13 | Temática Pokémon: paleta rojo/blanco/negro/amarillo, pokébola SVG, ficha, spinner; sin imágenes externas.                             | [ ]    |
+| 2B.14 | Accessibility: roles ARIA, foco visible, labels asociados en `PokemonForm`.                                                           | [ ]    |
+| 2B.15 | Responsive: mobile (≤ 480px) y desktop (≥ 1024px) layouts presentes.                                                                  | [ ]    |
+| 2B.16 | Vite dev proxy `/api/*` → `http://localhost:3000`.                                                                                    | [ ]    |
+| 2B.17 | Frontend Dockerfile multi-stage con Nginx; `nginx.conf` proxifica `/api/*` → `http://backend:3000/*` y `/healthz`.                    | [ ]    |
+| 2B.18 | Single commit `feat(frontend): build pokemon themed interface` on `feat/phase-2b-frontend`.                                           | [ ]    |
 
 ## Phase 2C — Documentation initial
 

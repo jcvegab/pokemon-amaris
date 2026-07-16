@@ -1,7 +1,8 @@
 # ADR 0004 — Docker Compose for local + containerized delivery
 
 - **Status:** Accepted
-- **Source:** `docs/CI.md` §6, `docs/EXECUTION.md` §5 (Phase 3), `docs/FRONTEND.md` §12
+- **Source:** `docs/CI.md` §6, `docs/EXECUTION.md` §5 (Phase 3),
+  `docs/FRONTEND.md` §12, `docs/adr/0011-backend-as-built-alignment.md`
 
 ## Context
 
@@ -34,9 +35,10 @@ frontend, and database with no manual steps.
 - Restart of the backend container does not lose data (`pgdata` volume).
 - `db-init` is a one-shot; the backend waits for it, not for the DB
   socket directly.
-- El proxy genérico `/api/*` cubre endpoints futuros (p. ej.
-  `GET /pokemon/:name` descrito en ADR `0010`) sin cambios en
-  `nginx.conf`.
+- El proxy genérico `/api/*` cubre endpoints futuros sin cambios
+  en `nginx.conf`. El backend actual solo expone `POST /pokemon`
+  y `GET /health`; cualquier ruta nueva requiere un ADR previo
+  (ver `0011`).
 - El healthcheck de Docker (`/healthz`) y el de la app
   (`backend /health`) son independientes; el primero valida que
   Nginx responde, el segundo que el backend y la DB están vivos.

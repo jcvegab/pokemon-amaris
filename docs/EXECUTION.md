@@ -9,23 +9,23 @@ responsabilidades entre agentes, para construir el monorepo
 
 ## 2. Decisiones cerradas
 
-| #   | Decisión                                                                                                     | Documento de origen          |
-| --- | ------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 1   | TypeScript 6.x como piso                                                                                     | STRUCTURE, BACKEND, FRONTEND |
-| 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                    | BACKEND, DIAGRAM             |
-| 3   | Frontend consume el backend a través de `/api/*` (Vite proxy en dev, Nginx en Docker)                        | FRONTEND, CI                 |
-| 4   | UI expone un único input que envía `{ name }` (backend también acepta `{ pokemon }`)                         | FRONTEND                     |
-| 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                | BACKEND, CI                  |
-| 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                | CI                           |
-| 7   | Concurrencia: `upsert` por `name` para evitar duplicados                                                     | BACKEND                      |
-| 8   | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha | FRONTEND                     |
-| 9   | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml`               | STRUCTURE, CI                |
-| 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                           | CI                           |
-| 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`   | BACKEND                      |
-| 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                          | DIAGRAM                      |
-| 13  | Frontend hace `GET /pokemon/:name` antes del `POST` para detectar duplicados sin invocar PokeAPI             | FRONTEND, DIAGRAM, ADR 0010  |
-| 14  | Frontend adopta arquitectura contextual por bounded context con composition root manual                      | FRONTEND, ADR 0009           |
-| 15  | Nginx proxifica `/api/*` (no solo `/api/pokemon`); frontend expone `/healthz`                                | FRONTEND, ADR 0004           |
+| #   | Decisión                                                                                                                                   | Documento de origen          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 1   | TypeScript: 5.7.x (workspace root, usado por `apps/backend` y tooling) + 6.x (solo `apps/frontend`)                                        | STRUCTURE, BACKEND, FRONTEND |
+| 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                                                  | BACKEND, DIAGRAM             |
+| 3   | Frontend consume el backend a través de `/api/*` (Vite proxy en dev, Nginx en Docker)                                                      | FRONTEND, CI                 |
+| 4   | UI expone un único input que envía `{ name }` (backend también acepta `{ pokemon }`)                                                       | FRONTEND                     |
+| 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                                              | BACKEND, CI                  |
+| 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                                              | CI                           |
+| 7   | Concurrencia: `INSERT pokemons` + captura de `P2002` + relectura por `name` (ver ADR `0011`)                                               | BACKEND                      |
+| 8   | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha                               | FRONTEND                     |
+| 9   | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml`                                             | STRUCTURE, CI                |
+| 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                                                         | CI                           |
+| 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`                                 | BACKEND                      |
+| 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                                                        | DIAGRAM                      |
+| 13  | Frontend solo envía `POST /pokemon`. No hace `GET` previo (ADR `0010` se reduce a DTO, abort y mensajes; ADR `0011` documenta el as-built) | FRONTEND, DIAGRAM, ADR 0010  |
+| 14  | Frontend adopta arquitectura contextual por bounded context con composition root manual                                                    | FRONTEND, ADR 0009           |
+| 15  | Nginx proxifica `/api/*` (no solo `/api/pokemon`); frontend expone `/healthz`                                                              | FRONTEND, ADR 0004           |
 
 ## 3. Ruta crítica
 
@@ -77,10 +77,11 @@ integrador.
 **Agente:** Arquitectura
 **Salidas:**
 
-- Contrato HTTP definitivo: `POST /pokemon`, `GET /pokemon/:name`,
-  `GET /health`, esquema de error.
-- Versiones exactas confirmadas (TS 6, Node 24, NestJS 11, Prisma 5,
-  Vite 5, React 19, Tailwind 4, pnpm 10).
+- Contrato HTTP definitivo: `POST /pokemon` y `GET /health`, esquema
+  de error. El frontend solo envía `POST` y deja al backend
+  resolver duplicados con `P2002` recovery (ver ADR `0011`).
+- Versiones exactas confirmadas (TS 5.7 backend, TS 6 frontend,
+  Node 24, NestJS 11, Prisma 5, Vite 5, React 19, Tailwind 4, pnpm 10).
 - Variables de entorno: `PORT`, `DATABASE_URL`, `POKEAPI_BASE_URL`,
   `POKEAPI_TIMEOUT_MS`, `VITE_API_BASE_URL=/api`,
   `VITE_API_TIMEOUT_MS`.
@@ -127,27 +128,48 @@ pnpm build   # pasa en vacío
 **Archivos:** `apps/backend/**`.
 **Ejecución:** paralela con 2B y 2C.
 
-**Orden interno:**
+**Orden interno (as-built):**
 
-1. Bootstrap NestJS 11, ESM, `@nestjs/config` con validación `zod`.
-2. Prisma 5: `schema.prisma`, `PrismaService`, `PrismaModule`.
-3. Dominio: entidad, value objects, `PokemonRepository` (puerto),
-   `PokeapiPort`.
-4. Errores: `DomainError` y subclases; `HttpErrorFilter`.
-5. Aplicación: DTO, validadores (`PokemonNameField`,
-   `ExactlyOneFieldConstraint`), `CreatePokemonUseCase`, mappers.
-6. Infraestructura: `PokeapiHttpAdapter`,
-   `PrismaPokemonRepository` con `upsertByName`.
-7. Controlador `POST /pokemon` con flag `created` que mapea a `201`
-   o `200`.
-8. `GET /health` con `TerminusModule` +
-   `DatabaseHealthIndicator` mockeable.
-9. `GET /pokemon/:name` con caché de DB (no consulta PokeAPI si ya
-   existe; 404 si no existe y PokeAPI tampoco lo encuentra).
+1. Bootstrap NestJS 11 en CommonJS, `@nestjs/config` con
+   validación `zod` (`env.schema.ts`).
+2. Prisma 5: `schema.prisma`, `PrismaService`, `PrismaModule`
+   bajo `Contexts/Shared/infrastructure/persistence/prisma/`.
+3. Dominio (`Contexts/Pokemon/domain`): entidad `Pokemon`,
+   value objects (`PokemonId`, `PokemonName`, `PokemonTypes`),
+   puerto `PokemonRepository`.
+4. Errores: `PokemonApplicationErrors.ts` (no `DomainError`); el
+   filtro `HttpErrorFilter` vive en
+   `Contexts/Shared/infrastructure/http/`.
+5. Aplicación (`Contexts/Pokemon/application`): caso de uso
+   `PokemonCreator` con flujo
+   `findByName → searchInCatalog → save`; puerto `PokemonCatalog`
+   y errores de aplicación.
+6. Infraestructura:
+   `Contexts/Pokemon/infrastructure/pokeapi/PokeApiHttpModule.ts`
+   con `PokeApiPokemonCatalog` (adaptador) + `PokeApiPokemonSchema`
+   - `PokeApiPokemonMapper`;
+     `Contexts/Pokemon/infrastructure/persistence/prisma/PrismaPokemonRepository.ts`
+     con `save()` que captura `P2002` y relee por `name`.
+7. `dependency-injection/PokemonModule.ts` con tokens `Symbol`
+   (`POKEMON_REPOSITORY`, `POKEMON_CATALOG`, `POKEMON_CREATOR`)
+   y `useFactory` para instanciar `PokemonCreator`.
+8. `Contexts/Pokemon/infrastructure/http/PokemonPostController.ts`
+   con `POST /pokemon` y flag `created` que mapea a `201` o `200`.
+9. `GET /health` con `TerminusModule` +
+   `DatabaseHealthIndicator` mockeable
+   (en `src/shared/health/`, fuera de `Contexts/`).
 10. Swagger en `/docs` y `/docs-json`.
-11. Logger `nestjs-pino` con `requestId`.
-12. Dockerfile multi-stage.
-13. Tests unitarios y de integración (Prisma y PokeAPI mockeados).
+11. Logger `nestjs-pino` con `requestId` y `pino-pretty` fuera
+    de producción.
+12. Dockerfile multi-stage con `prisma db push` en `CMD` del
+    stage runtime (alternativa al servicio `db-init`).
+13. Tests unitarios y de integración (Prisma y PokeAPI
+    mockeados; los tokens `POKEMON_REPOSITORY` y
+    `POKEMON_CATALOG` se sustituyen en tests de integración).
+
+> La fase 2A solo expone `POST /pokemon` y `GET /health`. Ver
+> ADR `0011`. El frontend solo envía `POST`; no consulta el
+> estado del Pokémon antes de enviar.
 
 **Casos obligatorios:**
 
@@ -164,9 +186,9 @@ pnpm build   # pasa en vacío
 - PokeAPI payload inválido → 502.
 - DB caída en lectura → 503.
 - DB caída en escritura → 503.
-- Upsert concurrente (mock) → una sola fila.
-- `GET /pokemon/:name` con DB hit → 200 sin llamar a PokeAPI.
-- `GET /pokemon/:name` con DB miss y PokeAPI miss → 404.
+- Conflicto `P2002` en escritura → 200 con fila existente.
+- `GET /health` con DB up → 200.
+- `GET /health` con DB down → 503.
 
 **Criterio de salida:**
 
@@ -193,9 +215,10 @@ Cobertura ≥ 85% (lines, statements, functions), branches ≥ 80%.
    `zod` (`VITE_API_BASE_URL=/api`, `VITE_API_TIMEOUT_MS`).
 4. Capas del bounded context `Pokemon`:
    - `domain/`: `PokemonName`, `Pokemon`, `PokemonError`.
-   - `application/ports/PokemonRepository.ts`.
-   - `application/create/PokemonCreator.ts` con flujo
-     `findByName → create`.
+   - `application/ports/PokemonRepository.ts` con `create(name)`.
+   - `application/create/PokemonCreator.ts` que normaliza y
+     delega en `create` (sin `findByName` previo; el backend
+     maneja duplicados con `P2002`).
    - `infrastructure/api/`: `PokemonApiSchema` (zod),
      `PokemonApiMapper`, `PokemonApiErrorMapper`,
      `ApiPokemonRepository`.
@@ -222,7 +245,8 @@ Cobertura ≥ 85% (lines, statements, functions), branches ≥ 80%.
 
 - Envío con `{ name }` normalizado (`pikachu`, `Pikachu `,
   `  PIKACHU  `).
-- `GET /pokemon/:name` antes del `POST` para evitar duplicados.
+- Solo `POST /pokemon`; sin `GET` previo. Duplicados los resuelve
+  el backend con `P2002` recovery.
 - Estados `idle`, `loading`, `success`, `error`.
 - Error 400, 404, 502, 503, timeout, red.
 - Preservación del `message` del backend cuando el body cumple el
@@ -401,21 +425,21 @@ docker compose up --build
 ```text
 Eres el agente de arquitectura. Tu única entrega son contratos y decisiones:
 1. POST /pokemon: 201 nuevo, 200 existente. Schema: { id, name, height, weight, types, createdAt }.
-2. GET /pokemon/:name: 200 si existe en DB, 404 si no existe y PokeAPI tampoco.
-3. GET /health: 200 si DB up, 503 si DB down.
-4. Error: { statusCode, code, message, timestamp, path }, message siempre string.
-5. Variables: PORT (backend), DATABASE_URL, POKEAPI_BASE_URL, POKEAPI_TIMEOUT_MS,
+2. GET /health: 200 si DB up, 503 si DB down.
+3. Error: { statusCode, code, message, timestamp, path }, message siempre string.
+4. Variables: PORT (backend), DATABASE_URL, POKEAPI_BASE_URL, POKEAPI_TIMEOUT_MS,
    VITE_API_BASE_URL=/api, VITE_API_TIMEOUT_MS.
-6. Versiones: TS 6, Node 24, NestJS 11, Prisma 5, Vite 5, React 19, Tailwind 4, pnpm 10.
-7. Concurrencia: upsert por name.
-8. No escribir código. Solo documentos de contrato y ADR inicial.
+5. Versiones: TS 5.7 (backend y tooling), TS 6 (solo frontend), Node 24, NestJS 11, Prisma 5, Vite 5,
+   React 19, Tailwind 4, pnpm 10.
+6. Concurrencia: INSERT pokemons + captura de P2002 + relectura por name.
+7. No escribir código. Solo documentos de contrato y ADR inicial.
 ```
 
 ### Foundation (Fase 1)
 
 ```text
 Eres el agente foundation. Crea la base del monorepo:
-- pnpm 10 workspaces, TS 6 estricto, ESLint flat, Prettier, Husky, lint-staged.
+- pnpm 10 workspaces, TS 5.7 estricto (root), ESLint flat, Prettier, Husky, lint-staged.
 - tsconfig.base.json con strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes.
 - .env.example con PORT, DATABASE_URL, POKEAPI_BASE_URL, POKEAPI_TIMEOUT_MS,
   VITE_API_BASE_URL=/api, VITE_API_TIMEOUT_MS.
@@ -428,19 +452,29 @@ No instalar NestJS ni React todavía.
 
 ```text
 Eres el agente backend. Trabajas solo en apps/backend/**.
-Sigue BACKEND.md y los contratos de Fase 0:
-- NestJS 11, TS 6, Prisma 5, ESM.
-- Arquitectura hexagonal sin CQRS.
-- POST /pokemon: 201 nuevo, 200 existente. Upsert por name.
+Sigue BACKEND.md, los contratos de Fase 0 y el ADR 0011:
+- NestJS 11 en CommonJS; TypeScript efectivo 5.7.x (workspace root).
+- Prisma 5.22. Layout por bounded contexts:
+  Contexts/Pokemon/{domain,application,infrastructure} y
+  Contexts/Shared/infrastructure. src/health/ y src/shared/health/
+  se mantienen fuera de Contexts/Shared.
+- POST /pokemon: 201 nuevo, 200 existente. Persistencia con
+  PrismaPokemonRepository.save(): INSERT pokemons + captura de
+  P2002 + SELECT por name.
 - POST /pokemon acepta { name } o { pokemon }, normalización trim+lowercase.
-- GET /pokemon/:name: 200 con registro persistido, 404 si no existe y PokeAPI tampoco.
-- GET /health con Terminus + DatabaseHealthIndicator.
-- Schema de error uniforme: { statusCode, code, message, timestamp, path }.
-- Logger nestjs-pino con requestId.
+- GET /health con Terminus + DatabaseHealthIndicator (Prisma $queryRaw).
+- Errores de aplicación en PokemonApplicationErrors.ts;
+  HttpErrorFilter en Contexts/Shared/infrastructure/http.
+- Logger nestjs-pino con requestId y pino-pretty fuera de producción.
 - Swagger en /docs y /docs-json.
-- Tests: Prisma y PokeAPI mockeados. Sin DB real en CI.
+- Tokens DI: POKEMON_REPOSITORY, POKEMON_CATALOG, POKEMON_CREATOR
+  (Symbol, exportados desde PokemonTokens.ts).
+- Tests: Prisma y PokeAPI mockeados; integración sustituye los
+  tokens por dobles. Sin DB real en CI. Config en jest.config.cjs;
+  sin test:e2e. Convención *.test.ts.
 - Cobertura ≥ 85% lines/statements/functions, branches ≥ 80%.
-- Dockerfile multi-stage con node:24-alpine.
+- Dockerfile multi-stage con node:24-alpine; el CMD del runtime
+  ejecuta prisma db push antes de node dist/main.js.
 ```
 
 ### Frontend (Fase 2B)
@@ -448,12 +482,13 @@ Sigue BACKEND.md y los contratos de Fase 0:
 ```text
 Eres el agente frontend. Trabajas solo en apps/frontend/**.
 Sigue FRONTEND.md y los contratos de Fase 0:
-- Vite 5, React 19, TS 6, Tailwind 4.
+- Vite 5, React 19, TS 6 (frontend), Tailwind 4.
 - VITE_API_BASE_URL=/api. Vite proxy en dev, Nginx en prod.
 - Un único input que envía { name }.
 - Bounded context Pokemon con capas domain/application/infrastructure/ui.
 - Composition root manual en src/app.
-- GET /pokemon/:name antes del POST para detectar duplicados (ADR 0010).
+- Solo `POST /pokemon`; sin `GET` previo. Duplicados los resuelve
+  el backend con `P2002` recovery.
 - useCreatePokemon con state discriminado y AbortController por request.
 - Presenter convierte Pokemon → PokemonViewModel (unidades, fecha es-PE).
 - Mensajes de error humanos cuando el body no cumple el schema; en caso

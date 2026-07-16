@@ -25,10 +25,15 @@ Phase 0 freezes `docs/CONTRACT.md` as the authoritative reference for:
 2. Environment variable names, defaults, and ownership.
 3. The HTTP contract of `POST /pokemon` and `GET /health`.
 4. The error schema and the stable error codes.
-5. Concurrency semantics (upsert by `name`).
+5. Concurrency semantics (insert + `P2002` recovery by `name`,
+   per ADR `0011`).
 6. Coverage thresholds.
 7. OpenAPI / Swagger endpoints.
 8. Logging fields.
+
+ADR `0011` is the canonical record of the as-built backend and
+records the deltas from the original plan. When ADR `0011` and
+this ADR disagree on a point, ADR `0011` wins.
 
 The other planning documents (`BACKEND.md`, `FRONTEND.md`, `CI.md`,
 `STRUCTURE.md`, `DIAGRAM.md`) describe **how** to implement the contract.
