@@ -1,21 +1,22 @@
 # PLAN — STRUCTURE
 
 ## 1. Objetivo
+
 Definir la base del monorepo, gestor de paquetes, organización de carpetas, herramientas comunes y convenciones de desarrollo que serán consumidas por `BACKEND.md`, `FRONTEND.md` y `CI.md`.
 
 ## 2. Decisiones de plataforma
 
-| Aspecto | Decisión |
-| --- | --- |
-| Gestor de paquetes | `pnpm` v10 con workspaces |
-| Versión de Node | 24 LTS |
-| Lenguaje | TypeScript 6.x (estricto) |
-| Estructura | Monorepo único (privado) |
-| Formato de módulos | ESM en backend y frontend |
-| Calidad de código | ESLint + Prettier compartidos |
-| Hooks | Husky + lint-staged |
-| Commits | Conventional Commits |
-| Ramas | `trunk-based` con PRs cortos |
+| Aspecto                | Decisión                                                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Gestor de paquetes     | `pnpm` v10 con workspaces                                                                                                    |
+| Versión de Node        | 24 LTS                                                                                                                       |
+| Lenguaje               | TypeScript 6.x (estricto)                                                                                                    |
+| Estructura             | Monorepo único (privado)                                                                                                     |
+| Formato de módulos     | ESM en backend y frontend                                                                                                    |
+| Calidad de código      | ESLint + Prettier compartidos                                                                                                |
+| Hooks                  | Husky + lint-staged                                                                                                          |
+| Commits                | Conventional Commits                                                                                                         |
+| Ramas                  | `trunk-based` con PRs cortos                                                                                                 |
 | Prioridad de versiones | Actualizar a versiones estables compatibles si las del enunciado no existen o no son compatibles; registrar el cambio en ADR |
 
 ## 3. Layout del monorepo
@@ -53,7 +54,7 @@ pokemon-amaris/
   "packageManager": "pnpm@10.x",
   "engines": {
     "node": ">=24.0.0",
-    "pnpm": ">=10.0.0"
+    "pnpm": ">=10.0.0",
   },
   "scripts": {
     "dev": "pnpm -r --parallel --stream run dev",
@@ -62,8 +63,8 @@ pokemon-amaris/
     "test": "pnpm -r run test",
     "test:cov": "pnpm -r run test:cov",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "prepare": "husky"
-  }
+    "prepare": "husky",
+  },
 }
 ```
 
@@ -71,7 +72,7 @@ pokemon-amaris/
 
 ```yaml
 packages:
-  - "apps/*"
+  - 'apps/*'
 ```
 
 ## 6. `tsconfig.base.json` compartido
@@ -90,8 +91,8 @@ packages:
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
-  }
+    "verbatimModuleSyntax": true,
+  },
 }
 ```
 
@@ -160,6 +161,7 @@ VITE_API_TIMEOUT_MS=8000
 `apps/backend` y `apps/frontend` validan su subconjunto con `zod` al arrancar.
 
 > **Convenciones:**
+>
 > - `PORT` es la variable interna del backend (NestJS).
 > - Los puertos expuestos al host se definen en `docker-compose.yml` (no en `.env`).
 > - `VITE_API_BASE_URL=/api` permite que Vite dev server y Nginx prod hagan proxy hacia el backend sin CORS.

@@ -1,16 +1,17 @@
 # PLAN — DIAGRAM
 
 ## 1. Objetivo
+
 Ilustrar la solución implementada con un diagrama de secuencia Mermaid que cubra el camino feliz, el caso de duplicado, las fallas de PokeAPI, los datos faltantes y las fallas de PostgreSQL.
 
 ## 2. Decisiones
 
-| Aspecto | Decisión |
-| --- | --- |
-| Tipo | Diagrama de secuencia (preferencia del enunciado) |
-| Formato | Mermaid (texto versionado en `docs/diagrams/sequence.mmd`) |
-| Herramienta | Mermaid renderizado por GitHub Markdown |
-| Ubicación | `docs/DIAGRAM.md` (vista) + `docs/diagrams/sequence.mmd` (fuente) |
+| Aspecto     | Decisión                                                          |
+| ----------- | ----------------------------------------------------------------- |
+| Tipo        | Diagrama de secuencia (preferencia del enunciado)                 |
+| Formato     | Mermaid (texto versionado en `docs/diagrams/sequence.mmd`)        |
+| Herramienta | Mermaid renderizado por GitHub Markdown                           |
+| Ubicación   | `docs/DIAGRAM.md` (vista) + `docs/diagrams/sequence.mmd` (fuente) |
 
 ## 3. Diagrama principal (`docs/diagrams/sequence.mmd`)
 

@@ -52,6 +52,7 @@ Construir un servicio en **NestJS** que permita crear y almacenar información d
      - No es necesario usar una herramienta específica.
 
 **Criterios de evaluación:**
+
 1. Diseño de la solución (arquitectura hexagonal, separación de capas, CQRS si aplica).
 2. Calidad del código (estructura, legibilidad, y uso idiomático de NestJS y React).
 3. Manejo de errores (backend y frontend).
@@ -59,6 +60,7 @@ Construir un servicio en **NestJS** que permita crear y almacenar información d
 5. Pruebas: presencia y calidad de tests (unitarios/integración). Se busca una cobertura **por encima del 85%**.
 
 **Notas adicionales:**
+
 - La API de Pokemon es obligatoria.
 - No se requiere implementar migraciones para la base de datos.
 - Documentación y pruebas son opcionales pero fuertemente valoradas; su inclusión suma puntos.
@@ -67,4 +69,3 @@ Construir un servicio en **NestJS** que permita crear y almacenar información d
   - Documentación del uso de IA en el flujo de desarrollo (por ejemplo, carpetas de Spec-Driven Development / ADRs generadas por la herramienta).
   - El tiempo de entrega.
 - Se valora que el código y la documentación reflejen la **voz y el estilo propio del candidato**, no únicamente salida generada por IA.
- 

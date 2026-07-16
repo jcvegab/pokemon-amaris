@@ -1,0 +1,14 @@
+{
+  "name": "@pokemon-amaris/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"@pokemon-amaris/frontend: dev not implemented yet (phase 2b)\" && exit 0",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "preview": "echo \"@pokemon-amaris/frontend: preview not implemented yet (phase 2b)\" && exit 0",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "test": "echo \"@pokemon-amaris/frontend: no tests yet (phase 2b)\" && exit 0",
+    "test:cov": "echo \"@pokemon-amaris/frontend: no coverage yet (phase 2b)\" && exit 0"
+  }
+}

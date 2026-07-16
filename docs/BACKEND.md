@@ -1,27 +1,28 @@
 # PLAN — BACKEND
 
 ## 1. Objetivo
+
 Implementar el servicio en NestJS 11 que consulta la PokeAPI, persiste información de Pokémon en PostgreSQL 17 mediante Prisma, y expone los endpoints `POST /pokemon` y `GET /health` con validación, manejo de errores y pruebas.
 
 ## 2. Decisiones técnicas
 
-| Aspecto | Decisión |
-| --- | --- |
-| Framework | NestJS 11 (última estable compatible) |
-| Lenguaje | TypeScript 6.x (extiende `tsconfig.base.json`) |
-| Runtime | Node 24 LTS |
-| Base de datos | PostgreSQL 17 |
-| ORM | Prisma 5.x (última estable) |
-| Inicialización DB | `prisma db push` (sin migraciones, según `DEFINITION.md`) |
-| Cliente HTTP | `@nestjs/axios` (`HttpService` con `axios` subyacente) |
-| API docs | `@nestjs/swagger` con CLI plugin, UI en `/docs` |
-| Health checks | `@nestjs/terminus` con indicador propio de base de datos |
-| Validación | `class-validator` + `class-transformer` con `ValidationPipe` global |
-| Logger | `nestjs-pino` |
-| Config | `@nestjs/config` con validación `zod` |
-| Tests | Jest + `ts-jest` (Prisma y PokeAPI mockeados) |
-| Cobertura objetivo | > 85% |
-| Arquitectura | Hexagonal sin CQRS |
+| Aspecto            | Decisión                                                            |
+| ------------------ | ------------------------------------------------------------------- |
+| Framework          | NestJS 11 (última estable compatible)                               |
+| Lenguaje           | TypeScript 6.x (extiende `tsconfig.base.json`)                      |
+| Runtime            | Node 24 LTS                                                         |
+| Base de datos      | PostgreSQL 17                                                       |
+| ORM                | Prisma 5.x (última estable)                                         |
+| Inicialización DB  | `prisma db push` (sin migraciones, según `DEFINITION.md`)           |
+| Cliente HTTP       | `@nestjs/axios` (`HttpService` con `axios` subyacente)              |
+| API docs           | `@nestjs/swagger` con CLI plugin, UI en `/docs`                     |
+| Health checks      | `@nestjs/terminus` con indicador propio de base de datos            |
+| Validación         | `class-validator` + `class-transformer` con `ValidationPipe` global |
+| Logger             | `nestjs-pino`                                                       |
+| Config             | `@nestjs/config` con validación `zod`                               |
+| Tests              | Jest + `ts-jest` (Prisma y PokeAPI mockeados)                       |
+| Cobertura objetivo | > 85%                                                               |
+| Arquitectura       | Hexagonal sin CQRS                                                  |
 
 ## 3. Layout de `apps/backend`
 
@@ -135,6 +136,7 @@ Acepta ambos formatos:
 ```
 
 Reglas:
+
 - Normalización: `trim()` + `toLowerCase()`.
 - Solo uno de los dos campos; si faltan ambos o ambos llegan, `400 Bad Request`.
 - Validación de longitud (1..50), patrón `^[a-z0-9-]+$`.
@@ -169,10 +171,9 @@ import { IsOptional, IsString, Length, Matches } from 'class-validator';
 export function PokemonNameField(field: 'name' | 'pokemon'): PropertyDecorator {
   return applyDecorators(
     ApiProperty({ example: 'pikachu', required: false }),
-    Transform(
-      ({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value),
-      { toClassOnly: true },
-    ),
+    Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value), {
+      toClassOnly: true,
+    }),
     IsOptional(),
     IsString(),
     Length(1, 50),
@@ -225,6 +226,7 @@ app.useGlobalPipes(
 ```
 
 Efectos:
+
 - `whitelist`: descarta propiedades no declaradas en el DTO.
 - `forbidNonWhitelisted`: rechaza con `400` si llegan campos extra.
 - `forbidUnknownValues`: falla si llegan objetos sin prototipo controlado.
@@ -263,13 +265,13 @@ Cuerpo de respuesta (idéntico en ambos casos):
 
 ### 5.3 Errores
 
-| Código | Cuándo |
-| --- | --- |
-| 400 | Body inválido (sin nombre, ambos, formato incorrecto, campo extra) |
-| 404 | PokeAPI no encuentra el Pokémon |
-| 502 | PokeAPI no responde, responde con `5xx`, o responde con formato inesperado |
-| 503 | No se puede escribir/leer en PostgreSQL |
-| 500 | Error inesperado |
+| Código | Cuándo                                                                     |
+| ------ | -------------------------------------------------------------------------- |
+| 400    | Body inválido (sin nombre, ambos, formato incorrecto, campo extra)         |
+| 404    | PokeAPI no encuentra el Pokémon                                            |
+| 502    | PokeAPI no responde, responde con `5xx`, o responde con formato inesperado |
+| 503    | No se puede escribir/leer en PostgreSQL                                    |
+| 500    | Error inesperado                                                           |
 
 **Esquema uniforme de error** (devuelto por `HttpErrorFilter`):
 
@@ -340,11 +342,7 @@ GET /health
 ```ts
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
-import {
-  HealthCheck,
-  HealthCheckResult,
-  HealthCheckService,
-} from '@nestjs/terminus';
+import { HealthCheck, HealthCheckResult, HealthCheckService } from '@nestjs/terminus';
 import { DatabaseHealthIndicator } from '../shared/health/database-health.indicator';
 
 @ApiTags('health')
@@ -360,9 +358,7 @@ export class HealthController {
   @ApiOkResponse({ description: 'Servidor y base de datos disponibles' })
   @ApiServiceUnavailableResponse({ description: 'Base de datos no disponible' })
   check(): Promise<HealthCheckResult> {
-    return this.health.check([
-      () => this.database.isHealthy('database'),
-    ]);
+    return this.health.check([() => this.database.isHealthy('database')]);
   }
 }
 ```
@@ -553,9 +549,7 @@ export class PokeapiHttpAdapter implements PokeapiPort {
   constructor(private readonly http: HttpService) {}
 
   async fetchByName(name: PokemonName, signal?: AbortSignal) {
-    const { data } = await firstValueFrom(
-      this.http.get(`/pokemon/${name.value}`, { signal }),
-    );
+    const { data } = await firstValueFrom(this.http.get(`/pokemon/${name.value}`, { signal }));
     const parsed = pokeApiPokemonSchema.safeParse(data);
     if (!parsed.success) throw new Error('PokeApiBadResponse');
     return {
@@ -640,13 +634,7 @@ export class DatabaseUnavailableError extends DomainError {
 ### 10.2 `shared/errors/http-error.filter.ts`
 
 ```ts
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DomainError } from './domain.error';
 
@@ -670,7 +658,7 @@ export class HttpErrorFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const r = exception.getResponse();
-      message = typeof r === 'string' ? r : (r as any).message ?? message;
+      message = typeof r === 'string' ? r : ((r as any).message ?? message);
       code = (r as any)?.error ?? code;
     }
 
@@ -729,6 +717,7 @@ export const envSchema = z.object({
 ## 12. Pruebas
 
 ### 12.1 Unitarias (`test/unit/`)
+
 - `create-pokemon.usecase.spec.ts`: éxito (201), duplicado (200), errores de PokeAPI (502, 404), errores de DB (503).
 - `pokeapi-http.adapter.spec.ts`: parseo, timeout, payload inválido, 404.
 - `prisma-pokemon.repository.spec.ts`: con `PrismaClient` mockeado (incluye `upsertByName`).
@@ -738,6 +727,7 @@ export const envSchema = z.object({
 - `http-error.filter.spec.ts`: mapeo de cada subclase de `DomainError` a su `httpStatus` y `code`.
 
 ### 12.2 Integración (`test/integration/`)
+
 - `pokemon.controller.spec.ts`: usa `Test.createTestingModule` con `PinoHttp`, `PrismaService` y `PokeapiPort` mockeados. **No** se conecta a PostgreSQL real en CI.
   - `POST /pokemon` con `{ name }` válido y DB vacía → 201.
   - `POST /pokemon` con `{ pokemon }` válido y DB vacía → 201.
@@ -779,14 +769,15 @@ export default {
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push --skip-generate"
-  }
+    "prisma:push": "prisma db push --skip-generate",
+  },
 }
 ```
 
 ## 14. Dockerfile
 
 Multi-stage:
+
 1. **build**: `node:24-alpine` + `pnpm install --frozen-lockfile` + `pnpm prisma generate` + `pnpm build`.
 2. **runtime**: `node:24-alpine` con usuario no-root, expone `3000`, `CMD ["node", "dist/main.js"]`.
 3. Espera activa a la DB mediante `dockerize` o script de retry.

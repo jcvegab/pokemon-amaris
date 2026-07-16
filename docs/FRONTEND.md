@@ -1,24 +1,25 @@
 # PLAN — FRONTEND
 
 ## 1. Objetivo
+
 Construir la aplicación en React 19 con Vite y Tailwind 4 que consume `POST /pokemon` del backend, gestiona estados de carga, éxito y error, y refleja los mensajes del servicio de forma comprensible.
 
 ## 2. Decisiones técnicas
 
-| Aspecto | Decisión |
-| --- | --- |
-| Framework | React 19 |
-| Build tool | Vite 5 |
-| Lenguaje | TypeScript 6.x (extiende `tsconfig.base.json`) |
-| Estilos | Tailwind CSS 4 (`@tailwindcss/vite`) |
-| Cliente HTTP | `fetch` nativo con `AbortController` |
-| Formularios | Un único input que envía `{ name }` (API también acepta `{ pokemon }`) |
-| Estado servidor | Local (sin TanStack Query; suficiente para el alcance) |
-| Router | No requerido (SPA de una vista) |
-| Tests | Vitest + Testing Library + jsdom |
-| Cobertura objetivo | > 85% |
-| Accesibilidad | Roles ARIA y foco visible |
-| Temática | Estética Pokémon sencilla (paleta rojo/blanco/negro/amarillo, contenedor Pokédex, pokébola como detalle, tarjeta estilo ficha) |
+| Aspecto            | Decisión                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Framework          | React 19                                                                                                                       |
+| Build tool         | Vite 5                                                                                                                         |
+| Lenguaje           | TypeScript 6.x (extiende `tsconfig.base.json`)                                                                                 |
+| Estilos            | Tailwind CSS 4 (`@tailwindcss/vite`)                                                                                           |
+| Cliente HTTP       | `fetch` nativo con `AbortController`                                                                                           |
+| Formularios        | Un único input que envía `{ name }` (API también acepta `{ pokemon }`)                                                         |
+| Estado servidor    | Local (sin TanStack Query; suficiente para el alcance)                                                                         |
+| Router             | No requerido (SPA de una vista)                                                                                                |
+| Tests              | Vitest + Testing Library + jsdom                                                                                               |
+| Cobertura objetivo | > 85%                                                                                                                          |
+| Accesibilidad      | Roles ARIA y foco visible                                                                                                      |
+| Temática           | Estética Pokémon sencilla (paleta rojo/blanco/negro/amarillo, contenedor Pokédex, pokébola como detalle, tarjeta estilo ficha) |
 
 ## 3. Layout de `apps/frontend`
 
@@ -89,23 +90,23 @@ VITE_API_TIMEOUT_MS=8000
 
 ### 5.2 Estados posibles
 
-| Estado | Visual |
-| --- | --- |
-| `idle` | Botón habilitado, sin banner |
+| Estado    | Visual                                                          |
+| --------- | --------------------------------------------------------------- |
+| `idle`    | Botón habilitado, sin banner                                    |
 | `loading` | Botón con spinner, input deshabilitado, banner "Consultando..." |
-| `success` | Banner verde con "Pokémon guardado", `<PokemonResult />` |
-| `error` | Banner rojo con mensaje humano, sin resultado |
+| `success` | Banner verde con "Pokémon guardado", `<PokemonResult />`        |
+| `error`   | Banner rojo con mensaje humano, sin resultado                   |
 
 ### 5.3 Mensajes de error humanos
 
-| Código HTTP | Mensaje |
-| --- | --- |
-| 400 | "Revisa el nombre del Pokémon." |
-| 404 | "No encontramos ese Pokémon. Verifica la escritura." |
-| 502 | "No pudimos consultar la PokéAPI. Intenta de nuevo." |
-| 503 | "El servicio no está disponible. Intenta más tarde." |
-| Network / timeout | "Sin conexión. Revisa tu red." |
-| Otro | "Ocurrió un error inesperado." |
+| Código HTTP       | Mensaje                                              |
+| ----------------- | ---------------------------------------------------- |
+| 400               | "Revisa el nombre del Pokémon."                      |
+| 404               | "No encontramos ese Pokémon. Verifica la escritura." |
+| 502               | "No pudimos consultar la PokéAPI. Intenta de nuevo." |
+| 503               | "El servicio no está disponible. Intenta más tarde." |
+| Network / timeout | "Sin conexión. Revisa tu red."                       |
+| Otro              | "Ocurrió un error inesperado."                       |
 
 ### 5.4 Temática visual
 
@@ -132,6 +133,7 @@ interface CreatePokemonInput {
 ```
 
 Responsabilidades:
+
 - Validar que llegue exactamente uno de los dos campos.
 - Llamar a `createPokemon` con `AbortController`.
 - Mapear respuesta a `PokemonResponse` o a `Error` con mensaje humano.
@@ -181,11 +183,13 @@ export interface PokemonResponse {
 ## 10. Pruebas
 
 ### 10.1 Unitarias
+
 - `format.ts`: formateo de `height`/`weight` con unidades.
 - `useCreatePokemon`: éxito (201), éxito (200 existente), error 400, error 404, error 502, error 503, abort, timeout, validación de payload.
 - `mapError`: traducción correcta por código HTTP y por `code` del backend.
 
 ### 10.2 Componentes (Testing Library)
+
 - `PokemonForm`: dispara `submit` con `{ name }`; deshabilita input y botón durante la carga; muestra spinner.
 - `StatusBanner`: muestra mensajes por estado (`idle`, `loading`, `success`, `error`).
 - `PokemonResult`: renderiza campos y formato `#025` para el ID.
@@ -220,14 +224,15 @@ Umbral de cobertura: `lines ≥ 85`, `statements ≥ 85`, `functions ≥ 85`, `b
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cov": "vitest run --coverage"
-  }
+    "test:cov": "vitest run --coverage",
+  },
 }
 ```
 
 ## 12. Dockerfile
 
 Multi-stage:
+
 1. **build**: `node:24-alpine` + `pnpm install --frozen-lockfile` + `pnpm build`. Vite bakea `VITE_API_BASE_URL=/api` en el bundle.
 2. **runtime**: `nginx:alpine` sirviendo `dist/`, con `nginx.conf` que:
    - Sirve `dist/` como estático.

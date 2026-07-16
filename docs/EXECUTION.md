@@ -6,21 +6,21 @@ Definir el plan de ejecución por fases, con separación clara de responsabilida
 
 ## 2. Decisiones cerradas
 
-| # | Decisión | Documento de origen |
-| --- | --- | --- |
-| 1 | TypeScript 6.x estable | STRUCTURE, BACKEND, FRONTEND |
-| 2 | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe | BACKEND, DIAGRAM |
-| 3 | Frontend siempre llama a `/api/pokemon` (Vite proxy en dev, Nginx en Docker) | FRONTEND, CI |
-| 4 | UI expone un único input que envía `{ name }` (el backend también acepta `{ pokemon }`) | FRONTEND |
-| 5 | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests | BACKEND, CI |
-| 6 | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios) | CI |
-| 7 | Concurrencia: `upsert` por `name` para evitar duplicados | BACKEND |
-| 8 | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha | FRONTEND |
-| 9 | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml` | STRUCTURE, CI |
-| 10 | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend | CI |
-| 11 | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string` | BACKEND |
-| 12 | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa) | DIAGRAM |
-| 13 | Pokémon existente: no se vuelve a consultar PokeAPI; se devuelve el registro persistido | BACKEND, DIAGRAM |
+| #   | Decisión                                                                                                     | Documento de origen          |
+| --- | ------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 1   | TypeScript 6.x estable                                                                                       | STRUCTURE, BACKEND, FRONTEND |
+| 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                    | BACKEND, DIAGRAM             |
+| 3   | Frontend siempre llama a `/api/pokemon` (Vite proxy en dev, Nginx en Docker)                                 | FRONTEND, CI                 |
+| 4   | UI expone un único input que envía `{ name }` (el backend también acepta `{ pokemon }`)                      | FRONTEND                     |
+| 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                | BACKEND, CI                  |
+| 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                | CI                           |
+| 7   | Concurrencia: `upsert` por `name` para evitar duplicados                                                     | BACKEND                      |
+| 8   | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha | FRONTEND                     |
+| 9   | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml`               | STRUCTURE, CI                |
+| 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                           | CI                           |
+| 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`   | BACKEND                      |
+| 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                          | DIAGRAM                      |
+| 13  | Pokémon existente: no se vuelve a consultar PokeAPI; se devuelve el registro persistido                      | BACKEND, DIAGRAM             |
 
 ## 3. Ruta crítica
 
@@ -324,19 +324,19 @@ docker compose up --build
 
 ## 6. Asignación de Agentes
 
-| Agente | Propiedad | Inicio | Fin | Paralelizable |
-| --- | --- | --- | --- | --- |
-| Arquitectura | contratos, decisiones | 0 | 0 | No |
-| Foundation | raíz del monorepo | 1 | 1 | No |
-| Backend | `apps/backend/**` | 2 | 2A | Sí (con 2B y 2C) |
-| Frontend | `apps/frontend/**` | 2 | 2B | Sí (con 2A y 2C) |
-| Docs | `docs/**`, `README.md` | 2 | 6 | Sí (con 2A y 2B) |
-| Infra | `docker-compose.yml`, Dockerfile, `nginx.conf` | 3 | 3 | No |
-| QA Backend | solo inspección | 4 | 4 | Sí |
-| QA Frontend | solo inspección | 4 | 4 | Sí |
-| QA Integración | solo inspección | 4 | 4 | Sí |
-| CI/CD | `.github/**` | 5 | 5 | No |
-| Release | verificación global | 7 | 7 | No |
+| Agente         | Propiedad                                      | Inicio | Fin | Paralelizable    |
+| -------------- | ---------------------------------------------- | ------ | --- | ---------------- |
+| Arquitectura   | contratos, decisiones                          | 0      | 0   | No               |
+| Foundation     | raíz del monorepo                              | 1      | 1   | No               |
+| Backend        | `apps/backend/**`                              | 2      | 2A  | Sí (con 2B y 2C) |
+| Frontend       | `apps/frontend/**`                             | 2      | 2B  | Sí (con 2A y 2C) |
+| Docs           | `docs/**`, `README.md`                         | 2      | 6   | Sí (con 2A y 2B) |
+| Infra          | `docker-compose.yml`, Dockerfile, `nginx.conf` | 3      | 3   | No               |
+| QA Backend     | solo inspección                                | 4      | 4   | Sí               |
+| QA Frontend    | solo inspección                                | 4      | 4   | Sí               |
+| QA Integración | solo inspección                                | 4      | 4   | Sí               |
+| CI/CD          | `.github/**`                                   | 5      | 5   | No               |
+| Release        | verificación global                            | 7      | 7   | No               |
 
 ## 7. Prompts por Agente
 
@@ -479,18 +479,18 @@ Cada hallazgo indica: severidad, archivo:línea, descripción, sugerencia de fix
 
 ### 9.1 Política de commits por fase
 
-| Fase | Commit obligatorio | Tipo sugerido | Rama | Notas |
-| --- | --- | --- | --- | --- |
-| 0 | No | `docs(adr):` | `feat/phase-0-architecture` | Cambios contractuales van en un único commit al cerrar la fase si los hubo. |
-| 1 | Sí | `chore: initialize monorepo foundation` | `feat/phase-1-foundation` | Un commit tras validar `pnpm install/lint/test/build` en vacío. |
-| 2A | Sí | `feat(backend): implement pokemon service` | `feat/phase-2a-backend` | Cerrar solo cuando se cumple el criterio de salida del backend. |
-| 2B | Sí | `feat(frontend): build pokemon themed interface` | `feat/phase-2b-frontend` | Cerrar solo cuando se cumple el criterio de salida del frontend. |
-| 2C | Sí | `docs: add architecture decisions` | `feat/phase-2c-docs` | Cierre parcial; refinamientos van en Fase 6. |
-| 3 | Sí | `chore(infra): add containerized stack` | `feat/phase-3-infra` | Commit tras `docker compose up --build` exitoso. |
-| 4 | No | `docs(qa):` o `fix:` | mismas ramas de las fases auditadas | QA no commitea cambios; solo registra. Si un agente propietario corrige, se commitea en su rama. |
-| 5 | Sí | `ci: add validation workflows` | `feat/phase-5-cicd` | Commit tras ver el pipeline verde. |
-| 6 | Sí | `docs: finalize project documentation` | `feat/phase-6-docs` | Cierra README, diagramas y ADRs finales. |
-| 7 | No | `chore(release):` | `main` (tag) | Tag anotado `v0.1.0`. No hay commit nuevo en código. |
+| Fase | Commit obligatorio | Tipo sugerido                                    | Rama                                | Notas                                                                                            |
+| ---- | ------------------ | ------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 0    | No                 | `docs(adr):`                                     | `feat/phase-0-architecture`         | Cambios contractuales van en un único commit al cerrar la fase si los hubo.                      |
+| 1    | Sí                 | `chore: initialize monorepo foundation`          | `feat/phase-1-foundation`           | Un commit tras validar `pnpm install/lint/test/build` en vacío.                                  |
+| 2A   | Sí                 | `feat(backend): implement pokemon service`       | `feat/phase-2a-backend`             | Cerrar solo cuando se cumple el criterio de salida del backend.                                  |
+| 2B   | Sí                 | `feat(frontend): build pokemon themed interface` | `feat/phase-2b-frontend`            | Cerrar solo cuando se cumple el criterio de salida del frontend.                                 |
+| 2C   | Sí                 | `docs: add architecture decisions`               | `feat/phase-2c-docs`                | Cierre parcial; refinamientos van en Fase 6.                                                     |
+| 3    | Sí                 | `chore(infra): add containerized stack`          | `feat/phase-3-infra`                | Commit tras `docker compose up --build` exitoso.                                                 |
+| 4    | No                 | `docs(qa):` o `fix:`                             | mismas ramas de las fases auditadas | QA no commitea cambios; solo registra. Si un agente propietario corrige, se commitea en su rama. |
+| 5    | Sí                 | `ci: add validation workflows`                   | `feat/phase-5-cicd`                 | Commit tras ver el pipeline verde.                                                               |
+| 6    | Sí                 | `docs: finalize project documentation`           | `feat/phase-6-docs`                 | Cierra README, diagramas y ADRs finales.                                                         |
+| 7    | No                 | `chore(release):`                                | `main` (tag)                        | Tag anotado `v0.1.0`. No hay commit nuevo en código.                                             |
 
 **Reglas:**
 

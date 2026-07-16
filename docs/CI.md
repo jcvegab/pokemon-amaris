@@ -1,20 +1,21 @@
 # PLAN — CI
 
 ## 1. Objetivo
+
 Definir el pipeline de integración continua en GitHub Actions y los artefactos de entrega del punto 5 de `DEFINITION.md`: `docker-compose.yml`, Dockerfiles, `README.md` y repositorio privado.
 
 ## 2. Decisiones
 
-| Aspecto | Decisión |
-| --- | --- |
-| Proveedor CI | GitHub Actions |
-| Disparadores | `pull_request` y `push` a `main` |
-| Gestor | `pnpm` con `corepack` |
-| Cache | `actions/setup-node` + `cache: 'pnpm'` |
-| Versionado Node | `24.x` |
-| Cobertura | `> 85%` en backend y frontend |
-| Build de imágenes | `docker buildx` por aplicación |
-| Compose | `docker compose v2` |
+| Aspecto           | Decisión                               |
+| ----------------- | -------------------------------------- |
+| Proveedor CI      | GitHub Actions                         |
+| Disparadores      | `pull_request` y `push` a `main`       |
+| Gestor            | `pnpm` con `corepack`                  |
+| Cache             | `actions/setup-node` + `cache: 'pnpm'` |
+| Versionado Node   | `24.x`                                 |
+| Cobertura         | `> 85%` en backend y frontend          |
+| Build de imágenes | `docker buildx` por aplicación         |
+| Compose           | `docker compose v2`                    |
 
 ## 3. Estructura `.github/`
 
@@ -83,25 +84,30 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   db-init:
     image: node:24-alpine
     working_dir: /app
     volumes:
       - .:/app
-    command: ["sh", "-c", "corepack enable && pnpm install --frozen-lockfile --filter @pokemon-amaris/backend... && pnpm --filter @pokemon-amaris/backend prisma:push"]
+    command:
+      [
+        'sh',
+        '-c',
+        'corepack enable && pnpm install --frozen-lockfile --filter @pokemon-amaris/backend... && pnpm --filter @pokemon-amaris/backend prisma:push',
+      ]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   backend:
     build:
@@ -117,12 +123,12 @@ services:
       db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
       interval: 10s
       timeout: 5s
       retries: 6
     ports:
-      - "3000:3000"
+      - '3000:3000'
 
   frontend:
     build:
@@ -132,13 +138,14 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8080:80"
+      - '8080:80'
 
 volumes:
   pgdata:
 ```
 
 Notas:
+
 - `db-init` ejecuta `prisma db push` y termina. El backend solo arranca después de que el esquema exista.
 - `frontend` expone 8080 hacia 80 interno (nginx).
 - `nginx.conf` proxifica `/api/pokemon` a `http://backend:3000/pokemon` y sirve `dist/`.
@@ -188,9 +195,9 @@ Aplicados tanto en Jest como en Vitest y verificados en CI:
       "lines": 85,
       "statements": 85,
       "functions": 85,
-      "branches": 80
-    }
-  }
+      "branches": 80,
+    },
+  },
 }
 ```
 
@@ -207,48 +214,48 @@ Escanea `npm`/`pnpm`, `github-actions` y `docker` agrupando parches y menores en
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Lima"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/Lima'
     grouping:
       patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
     open-pull-requests-limit: 5
-    labels: ["dependencies", "chore"]
+    labels: ['dependencies', 'chore']
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
     ignore:
-      - dependency-name: "@nestjs/core"
-        versions: ["11.x"]
+      - dependency-name: '@nestjs/core'
+        versions: ['11.x']
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-    labels: ["dependencies", "ci"]
+      interval: 'weekly'
+      day: 'monday'
+    labels: ['dependencies', 'ci']
     commit-message:
-      prefix: "ci(actions)"
+      prefix: 'ci(actions)'
 
-  - package-ecosystem: "docker"
-    directory: "/"
+  - package-ecosystem: 'docker'
+    directory: '/'
     schedule:
-      interval: "weekly"
-    labels: ["dependencies", "docker"]
+      interval: 'weekly'
+    labels: ['dependencies', 'docker']
     commit-message:
-      prefix: "chore(docker)"
+      prefix: 'chore(docker)'
 ```
 
 ### 9.2 `pull_request_template.md`
 
 Fuerza resumen, pruebas, impacto y checklist antes de pedir review.
 
-```md
+````md
 ## Resumen
 
 <!-- 1-3 líneas: qué cambia y por qué -->
@@ -271,6 +278,7 @@ Fuerza resumen, pruebas, impacto y checklist antes de pedir review.
 ```bash
 # comandos exactos
 ```
+````
 
 - [ ] Probado en local
 - [ ] Tests añadidos/actualizados
@@ -293,7 +301,8 @@ Fuerza resumen, pruebas, impacto y checklist antes de pedir review.
 - [ ] Tests pasan
 - [ ] Sin secretos en el diff
 - [ ] ADR actualizado si cambia decisión de diseño
-```
+
+````
 
 ### 9.3 `ISSUE_TEMPLATE/bug_report.md` y `feature_request.md`
 
@@ -319,24 +328,24 @@ Asigna revisores por área. Como el repo es de un solo autor, define un placehol
 /.github/        @jcvegab
 /docker-compose.yml @jcvegab
 /docs/CI.md      @jcvegab
-```
+````
 
 ### 9.5 Branch protection en `main`
 
 Configuración esperada en GitHub → Settings → Branches → `main`:
 
-| Regla | Valor |
-| --- | --- |
-| Require pull request before merging | sí, ≥ 1 aprobador |
-| Require approvals | 1 |
-| Dismiss stale approvals on new push | sí |
-| Require status checks to pass | `ci/backend`, `ci/frontend`, `ci/summary` |
-| Require branches to be up to date | sí |
-| Require linear history | sí |
-| Require signed commits | opcional |
-| Include administrators | sí |
-| Allow force pushes | no |
-| Allow deletions | no |
+| Regla                               | Valor                                     |
+| ----------------------------------- | ----------------------------------------- |
+| Require pull request before merging | sí, ≥ 1 aprobador                         |
+| Require approvals                   | 1                                         |
+| Dismiss stale approvals on new push | sí                                        |
+| Require status checks to pass       | `ci/backend`, `ci/frontend`, `ci/summary` |
+| Require branches to be up to date   | sí                                        |
+| Require linear history              | sí                                        |
+| Require signed commits              | opcional                                  |
+| Include administrators              | sí                                        |
+| Allow force pushes                  | no                                        |
+| Allow deletions                     | no                                        |
 
 Permisos del GITHUB_TOKEN: `contents: read`, `pull-requests: write`, `checks: write`, `security-events: read` (CodeQL).
 

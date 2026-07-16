@@ -1,0 +1,15 @@
+{
+  "name": "@pokemon-amaris/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "echo \"@pokemon-amaris/backend: dev not implemented yet (phase 2a)\" && exit 0",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "echo \"@pokemon-amaris/backend: no tests yet (phase 2a)\" && exit 0",
+    "test:cov": "echo \"@pokemon-amaris/backend: no coverage yet (phase 2a)\" && exit 0"
+  }
+}
