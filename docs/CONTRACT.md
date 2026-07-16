@@ -7,9 +7,8 @@ requires an ADR.
 > Este documento incorpora extensiones registradas en:
 >
 > - **ADR 0009** — arquitectura contextual frontend.
-> - **ADR 0010** — flujo HTTP frontend (DTO con `types` anidado
->   estilo PokéAPI, preservación de `message` del backend, abort
->   parcial).
+> - **ADR 0010** — flujo HTTP frontend (contrato backend-only,
+>   preservación de `message` del backend, abort parcial).
 > - **ADR 0011** — backend as-built (layout `Contexts/`, CommonJS,
 >   TypeScript efectivo 5.7, persistencia vía `P2002`).
 
@@ -149,10 +148,8 @@ interface PokemonResponse {
 > that fallback is no longer exercised against the current
 > backend (see ADR `0010`).
 
-> The frontend may still validate an intermediate shape with
-> `types: [{ slot, type: { name, url } }]` (PokeAPI native) and
-> project to `string[]` before reaching the domain. The contract
-> that crosses the network remains `types: string[]`.
+> The frontend validates only the public backend response shape.
+> Any upstream-only payload shape is rejected at the frontend boundary.
 
 `ErrorResponse` (uniform error body — `HttpErrorFilter`):
 

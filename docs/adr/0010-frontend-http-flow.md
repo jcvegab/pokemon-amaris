@@ -1,4 +1,4 @@
-# ADR 0010 — Frontend HTTP flow (DTO PokéAPI, abort parcial, mensajes)
+# ADR 0010 — Frontend HTTP flow (contrato backend-only, abort parcial, mensajes)
 
 - **Status:** Accepted (revised)
 - **Source:** `docs/FRONTEND.md` §5.2, §6.3, §7, §8.1;
@@ -16,11 +16,9 @@ funcionales que afectan al contrato observable del cliente.
 - El cliente envía `POST /pokemon` con `{ name }` normalizado. El
   backend distingue creación nueva de duplicado por su respuesta
   (`201` vs `200`).
-- El schema `pokeApiPokemonDtoSchema` valida la forma PokéAPI y el
-  mapper `PokemonApiMapper.toSnapshot` proyecta `types` a
-  `string[]`. La respuesta pública sigue siendo `types: string[]`
-  para el dominio y la UI; el shape PokéAPI vive solo en la capa
-  de infraestructura.
+- El schema `pokemonApiResponseSchema` valida solo la respuesta
+  pública del backend: `types: string[]` y `createdAt` requerido.
+  El frontend no acepta shapes de proveedores externos.
 - `createdAt` es **obligatorio** en el contrato público. Se
   renderiza formateado en `es-PE` por `PokemonPresenter.formatDate`.
   El frontend no tolera ausencias: si la respuesta no trae
@@ -40,9 +38,9 @@ funcionales que afectan al contrato observable del cliente.
 
 ## Consequences
 
-- El frontend tolera un body con `types` anidado o plano. Si el
-  backend cambia la forma intermedia (p. ej. a `string[]`
-  directo), el schema seguirá aceptándolo con un cambio mínimo.
+- El frontend queda acoplado al contrato público del backend, no al
+  payload de proveedores externos. Si el backend cambia ese contrato, se
+  requiere actualizar este ADR y el schema en la misma PR.
 - `createdAt` siempre se muestra a partir de la fecha persistida
   por el backend. No hay fallback al reloj del cliente.
 - La cancelación real del request queda pendiente. La

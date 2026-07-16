@@ -1,61 +1,77 @@
 import { describe, expect, it } from 'vitest';
 import {
-  pokeApiPokemonDtoSchema,
+  pokemonApiResponseSchema,
   backendErrorResponseSchema,
 } from '../../src/Contexts/Pokemon/infrastructure/api/PokemonApiSchema';
 
-describe('pokeApiPokemonDtoSchema', () => {
+describe('pokemonApiResponseSchema', () => {
   it('parses a valid payload', () => {
-    const result = pokeApiPokemonDtoSchema.safeParse({
+    const result = pokemonApiResponseSchema.safeParse({
       id: 25,
       name: 'pikachu',
       height: 4,
       weight: 60,
-      types: [{ slot: 1, type: { name: 'electric', url: 'x' } }],
+      types: ['electric'],
+      createdAt: '2026-07-16T12:00:00.000Z',
     });
     expect(result.success).toBe(true);
   });
 
   it('rejects empty types', () => {
-    const result = pokeApiPokemonDtoSchema.safeParse({
+    const result = pokemonApiResponseSchema.safeParse({
       id: 1,
       name: 'x',
       height: 1,
       weight: 1,
       types: [],
+      createdAt: '2026-07-16T12:00:00.000Z',
     });
     expect(result.success).toBe(false);
   });
 
   it('rejects negative id', () => {
-    const result = pokeApiPokemonDtoSchema.safeParse({
+    const result = pokemonApiResponseSchema.safeParse({
       id: -1,
       name: 'x',
       height: 1,
       weight: 1,
-      types: [{ slot: 1, type: { name: 'a', url: 'x' } }],
+      types: ['normal'],
+      createdAt: '2026-07-16T12:00:00.000Z',
     });
     expect(result.success).toBe(false);
   });
 
-  it('rejects missing name on type', () => {
-    const result = pokeApiPokemonDtoSchema.safeParse({
+  it('rejects non-string types', () => {
+    const result = pokemonApiResponseSchema.safeParse({
       id: 1,
       name: 'x',
       height: 1,
       weight: 1,
-      types: [{ slot: 1, type: { url: 'x' } }],
+      types: [{ name: 'normal' }],
+      createdAt: '2026-07-16T12:00:00.000Z',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing createdAt', () => {
+    const result = pokemonApiResponseSchema.safeParse({
+      id: 1,
+      name: 'x',
+      height: 1,
+      weight: 1,
+      types: ['normal'],
     });
     expect(result.success).toBe(false);
   });
 
   it('strips extra fields silently', () => {
-    const result = pokeApiPokemonDtoSchema.safeParse({
+    const result = pokemonApiResponseSchema.safeParse({
       id: 1,
       name: 'x',
       height: 1,
       weight: 1,
-      types: [{ slot: 1, type: { name: 'a', url: 'x' } }],
+      types: ['normal'],
+      createdAt: '2026-07-16T12:00:00.000Z',
       sprites: { whatever: true },
     });
     expect(result.success).toBe(true);

@@ -9,23 +9,23 @@ responsabilidades entre agentes, para construir el monorepo
 
 ## 2. Decisiones cerradas
 
-| #   | Decisión                                                                                                                                   | Documento de origen          |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| 1   | TypeScript: 5.7.x (workspace root, usado por `apps/backend` y tooling) + 6.x (solo `apps/frontend`)                                        | STRUCTURE, BACKEND, FRONTEND |
-| 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                                                  | BACKEND, DIAGRAM             |
-| 3   | Frontend consume el backend a través de `/api/*` (Vite proxy en dev, Nginx en Docker)                                                      | FRONTEND, CI                 |
-| 4   | UI expone un único input que envía `{ name }` (backend también acepta `{ pokemon }`)                                                       | FRONTEND                     |
-| 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                                              | BACKEND, CI                  |
-| 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                                              | CI                           |
-| 7   | Concurrencia: `INSERT pokemons` + captura de `P2002` + relectura por `name` (ver ADR `0011`)                                               | BACKEND                      |
-| 8   | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha                               | FRONTEND                     |
-| 9   | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml`                                             | STRUCTURE, CI                |
-| 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                                                         | CI                           |
-| 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`                                 | BACKEND                      |
-| 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                                                        | DIAGRAM                      |
-| 13  | Frontend solo envía `POST /pokemon`. No hace `GET` previo (ADR `0010` se reduce a DTO, abort y mensajes; ADR `0011` documenta el as-built) | FRONTEND, DIAGRAM, ADR 0010  |
-| 14  | Frontend adopta arquitectura contextual por bounded context con composition root manual                                                    | FRONTEND, ADR 0009           |
-| 15  | Nginx proxifica `/api/*` (no solo `/api/pokemon`); frontend expone `/healthz`                                                              | FRONTEND, ADR 0004           |
+| #   | Decisión                                                                                                                                                     | Documento de origen          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 1   | TypeScript: 5.7.x (workspace root, usado por `apps/backend` y tooling) + 6.x (solo `apps/frontend`)                                                          | STRUCTURE, BACKEND, FRONTEND |
+| 2   | `POST /pokemon` responde `201 Created` cuando crea y `200 OK` cuando el Pokémon ya existe                                                                    | BACKEND, DIAGRAM             |
+| 3   | Frontend consume el backend a través de `/api/*` (Vite proxy en dev, Nginx en Docker)                                                                        | FRONTEND, CI                 |
+| 4   | UI expone un único input que envía `{ name }` (backend también acepta `{ pokemon }`)                                                                         | FRONTEND                     |
+| 5   | PostgreSQL **no** se usa en CI: Prisma y repositorios se mockean en los tests                                                                                | BACKEND, CI                  |
+| 6   | CI ejecuta backend y frontend completos en cada PR (sin detección de cambios)                                                                                | CI                           |
+| 7   | Concurrencia: `INSERT pokemons` + captura de `P2002` + relectura por `name` (ver ADR `0011`)                                                                 | BACKEND                      |
+| 8   | Temática visual: Pokédex sencilla con paleta rojo/blanco/negro/amarillo, pokébola SVG y tarjeta estilo ficha                                                 | FRONTEND                     |
+| 9   | `PORT` es la variable interna del backend; los puertos host se definen en `docker-compose.yml`                                                               | STRUCTURE, CI                |
+| 10  | `db-init` (servicio Compose) ejecuta `prisma db push` antes de levantar el backend                                                                           | CI                           |
+| 11  | Esquema uniforme de error: `{ statusCode, code, message, timestamp, path }` con `message` siempre `string`                                                   | BACKEND                      |
+| 12  | Diagrama de arquitectura: `NestJS → Prisma → PostgreSQL` (sin conexión SQL directa)                                                                          | DIAGRAM                      |
+| 13  | Frontend solo envía `POST /pokemon`. No hace `GET` previo (ADR `0010` se reduce a contrato backend-only, abort y mensajes; ADR `0011` documenta el as-built) | FRONTEND, DIAGRAM, ADR 0010  |
+| 14  | Frontend adopta arquitectura contextual por bounded context con composition root manual                                                                      | FRONTEND, ADR 0009           |
+| 15  | Nginx proxifica `/api/*` (no solo `/api/pokemon`); frontend expone `/healthz`                                                                                | FRONTEND, ADR 0004           |
 
 ## 3. Ruta crítica
 
@@ -550,7 +550,8 @@ Eres el agente docs. Cierras documentación.
 Eres QA. No editas. Reportas hallazgos.
 - QA Backend: cobertura, casos obligatorios, formato de errores, arquitectura.
 - QA Frontend: estados, accesibilidad, responsive, cobertura, temática.
-  Verifica la conformidad con la respuesta PokeAPI anidada (ADR 0010).
+  Verifica la conformidad con la respuesta pública del backend
+  (`types: string[]`, `createdAt` requerido; ADR 0010).
 - QA Integración: docker compose up, persistencia tras reinicio, proxy /api, health.
 Cada hallazgo indica: severidad, archivo:línea, descripción, sugerencia de fix.
 ```

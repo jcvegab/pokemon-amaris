@@ -73,7 +73,7 @@ nice.
 | 2B.6  | Hook expone estados `idle` / `loading` / `success` / `error` con unión discriminada.                                                  | [ ]    |
 | 2B.7  | El cliente solo envía `POST /pokemon`. No hay `GET` previo; los duplicados los resuelve el backend con `P2002` recovery (ADR `0011`). | [ ]    |
 | 2B.8  | Hook descarta resultados tardíos vía `AbortController` por `submit`; cancelación del request no se inyecta al HTTP.                   | [ ]    |
-| 2B.9  | Respuesta de éxito validada con schema PokeAPI (`types: [{ slot, type: { name, url } }]`) y proyectada a `string[]`.                  | [ ]    |
+| 2B.9  | Respuesta de éxito validada contra el contrato backend (`types: string[]`, `createdAt` requerido).                                    | [ ]    |
 | 2B.10 | `createdAt` se exige y se renderiza formateado en `es-PE`.                                                                            | [ ]    |
 | 2B.11 | Errors 400, 404, 502, 503, timeout, network: `message` del backend se conserva si el body encaja; fallback humano si no.              | [ ]    |
 | 2B.12 | Composition root en `src/app/composition-root.ts`; tests usan `InMemoryPokemonRepository`.                                            | [ ]    |

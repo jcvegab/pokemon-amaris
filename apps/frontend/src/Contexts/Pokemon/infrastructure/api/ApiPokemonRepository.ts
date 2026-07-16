@@ -13,7 +13,7 @@ import {
   NetworkError,
   RequestAbortedError,
 } from '../../../Shared/infrastructure/http/httpErrors';
-import { pokeApiPokemonDtoSchema, type PokeApiPokemonDto } from './PokemonApiSchema';
+import { pokemonApiResponseSchema, type PokemonApiResponse } from './PokemonApiSchema';
 import { PokemonApiMapper } from './PokemonApiMapper';
 import { mapHttpErrorToPokemonError } from './PokemonApiErrorMapper';
 
@@ -34,14 +34,6 @@ export class ApiPokemonRepository implements PokemonRepository {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
-  async findByName(name: PokemonName): Promise<Pokemon | null> {
-    const result = await this.request<unknown>('GET', `/pokemon/${encodeURIComponent(name.value)}`);
-    if (result.status === 404) {
-      return null;
-    }
-    return this.parsePokemonResponse(result.body, name);
-  }
-
   async create(name: PokemonName): Promise<PokemonRepositoryCreateOutcome> {
     const result = await this.request<unknown>('POST', '/pokemon', { name: name.value });
     if (result.status === 201) {
@@ -54,7 +46,7 @@ export class ApiPokemonRepository implements PokemonRepository {
   }
 
   private async request<T>(
-    method: 'GET' | 'POST',
+    method: 'POST',
     path: string,
     body?: unknown,
   ): Promise<{ status: number; body: T }> {
@@ -91,13 +83,12 @@ export class ApiPokemonRepository implements PokemonRepository {
   }
 
   private parsePokemonResponse(body: unknown, expectedName: PokemonName): Pokemon {
-    const parsed = pokeApiPokemonDtoSchema.safeParse(body);
+    const parsed = pokemonApiResponseSchema.safeParse(body);
     if (!parsed.success) {
       throw new PokemonError(POKEMON_ERROR_CODES.unexpected, 'Respuesta inesperada del servidor.');
     }
-    const dto: PokeApiPokemonDto = parsed.data;
-    const createdAt = extractCreatedAt(body) ?? new Date().toISOString();
-    const snapshot = PokemonApiMapper.toSnapshot(dto, createdAt);
+    const dto: PokemonApiResponse = parsed.data;
+    const snapshot = PokemonApiMapper.toSnapshot(dto);
     if (snapshot.name !== expectedName.value) {
       throw new PokemonError(
         POKEMON_ERROR_CODES.notFound,
@@ -119,12 +110,4 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   } catch {
     return null;
   }
-}
-
-function extractCreatedAt(body: unknown): string | null {
-  if (body && typeof body === 'object' && 'createdAt' in body) {
-    const value = (body as { createdAt?: unknown }).createdAt;
-    if (typeof value === 'string') return value;
-  }
-  return null;
 }

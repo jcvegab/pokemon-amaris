@@ -1,5 +1,5 @@
 import { Pokemon } from '../../domain/model/Pokemon';
-import type { PokeApiPokemonDto } from './PokemonApiSchema';
+import type { PokemonApiResponse } from './PokemonApiSchema';
 
 export interface PokemonApiSnapshot {
   id: number;
@@ -11,14 +11,14 @@ export interface PokemonApiSnapshot {
 }
 
 export class PokemonApiMapper {
-  static toSnapshot(dto: PokeApiPokemonDto, createdAt: string): PokemonApiSnapshot {
+  static toSnapshot(dto: PokemonApiResponse): PokemonApiSnapshot {
     return {
       id: dto.id,
       name: dto.name,
       height: dto.height,
       weight: dto.weight,
-      types: dto.types.map((entry) => entry.type.name),
-      createdAt,
+      types: dto.types,
+      createdAt: dto.createdAt,
     };
   }
 

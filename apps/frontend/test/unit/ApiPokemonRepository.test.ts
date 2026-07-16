@@ -47,7 +47,7 @@ describe('ApiPokemonRepository', () => {
         name: 'pikachu',
         height: 4,
         weight: 60,
-        types: [{ slot: 1, type: { name: 'electric', url: 'x' } }],
+        types: ['electric'],
         createdAt: '2026-07-16T12:00:00.000Z',
       }),
     );
@@ -71,7 +71,7 @@ describe('ApiPokemonRepository', () => {
         name: 'pikachu',
         height: 4,
         weight: 60,
-        types: [{ slot: 1, type: { name: 'electric', url: 'x' } }],
+        types: ['electric'],
         createdAt: '2026-01-01T00:00:00.000Z',
       }),
     );
@@ -127,7 +127,7 @@ describe('ApiPokemonRepository', () => {
         name: 'raichu',
         height: 4,
         weight: 60,
-        types: [{ slot: 1, type: { name: 'electric', url: 'x' } }],
+        types: ['electric'],
         createdAt: '2026-07-16T12:00:00.000Z',
       }),
     );
@@ -162,7 +162,7 @@ describe('ApiPokemonRepository', () => {
         name: 'pikachu',
         height: 1,
         weight: 1,
-        types: [{ slot: 1, type: { name: 'electric', url: 'x' } }],
+        types: ['electric'],
         createdAt: '2026-07-16T12:00:00.000Z',
       }),
     );
@@ -173,5 +173,48 @@ describe('ApiPokemonRepository', () => {
     });
     await repo.create(new PokemonName('pikachu'));
     expect(fetchStub.calls[0]!.url).toBe('/api/pokemon');
+  });
+
+  it('throws PokemonError for non-backend success payload', async () => {
+    fetchStub = makeFetch(() =>
+      jsonResponse(201, {
+        id: 25,
+        name: 'pikachu',
+        height: 4,
+        weight: 60,
+        types: [{ name: 'electric' }],
+        createdAt: '2026-07-16T12:00:00.000Z',
+      }),
+    );
+    repo = new ApiPokemonRepository({
+      baseUrl: '/api',
+      timeoutMs: 1000,
+      fetchImpl: fetchStub.fetch,
+    });
+
+    await expect(repo.create(new PokemonName('pikachu'))).rejects.toMatchObject({
+      code: POKEMON_ERROR_CODES.unexpected,
+    });
+  });
+
+  it('throws PokemonError when createdAt is missing', async () => {
+    fetchStub = makeFetch(() =>
+      jsonResponse(201, {
+        id: 25,
+        name: 'pikachu',
+        height: 4,
+        weight: 60,
+        types: ['electric'],
+      }),
+    );
+    repo = new ApiPokemonRepository({
+      baseUrl: '/api',
+      timeoutMs: 1000,
+      fetchImpl: fetchStub.fetch,
+    });
+
+    await expect(repo.create(new PokemonName('pikachu'))).rejects.toMatchObject({
+      code: POKEMON_ERROR_CODES.unexpected,
+    });
   });
 });

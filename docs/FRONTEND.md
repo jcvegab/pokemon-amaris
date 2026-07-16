@@ -10,8 +10,8 @@ comprensibles.
 > Este documento describe el código construido en
 > `apps/frontend/`, no el plan original. Cambios respecto a
 > `docs/CONTRACT.md` y `docs/STRUCTURE.md` se justifican en los ADRs
-> `0009` (arquitectura contextual) y `0010` (DTO PokéAPI, abort
-> parcial, preservación de `message` del backend).
+> `0009` (arquitectura contextual) y `0010` (contrato backend-only,
+> abort parcial, preservación de `message` del backend).
 > El estado del backend (CommonJS, persistencia vía `P2002`) se
 > documenta en el ADR `0011`.
 
@@ -336,31 +336,23 @@ con el ciclo de `AbortController`. Errores de red se traducen a
 
 ### 8.1 DTO de respuesta (consumido por el frontend)
 
-El schema `pokeApiPokemonDtoSchema` valida la respuesta de éxito con
-forma PokéAPI (ver ADR `0010`):
+El schema `pokemonApiResponseSchema` valida solo la respuesta pública
+del backend (ver ADR `0010`):
 
 ```ts
-const pokeApiTypesSchema = z
-  .array(
-    z.object({
-      slot: z.number().int().positive(),
-      type: z.object({ name: z.string().min(1), url: z.string().min(1) }),
-    }),
-  )
-  .min(1);
-
-const pokeApiPokemonDtoSchema = z.object({
+const pokemonApiResponseSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().min(1),
   height: z.number().int().nonnegative(),
   weight: z.number().int().nonnegative(),
-  types: pokeApiTypesSchema,
+  types: z.array(z.string().min(1)).min(1),
+  createdAt: z.string().min(1),
 });
 ```
 
 `createdAt` es obligatorio en el contrato público (ADR `0011`).
-El mapper `PokemonApiMapper.toSnapshot` proyecta `types` a
-`string[]` usando `type.name`.
+El mapper `PokemonApiMapper.toSnapshot` copia `types: string[]`
+directamente; no acepta shapes de proveedores externos.
 
 ### 8.2 Schema de error
 
@@ -427,7 +419,7 @@ short`.
 - `ApiPokemonRepository.test.ts`: `POST` con `{ name }`, status
   `201/200/404/502`, mapeo de errores, payload inválido, `name`
   cruzado, error de red, trailing slash.
-- `PokemonApiSchema.test.ts`: schema PokeAPI válido, payloads
+- `PokemonApiSchema.test.ts`: schema backend válido, payloads
   inválidos.
 - `PokemonApiErrorMapper.test.ts`: `code` del backend, fallback por
   `statusCode`, `message` preservado.
@@ -535,8 +527,8 @@ http://localhost/healthz`.
       recovery.
 - [ ] Estados `idle`, `loading`, `success`, `error` correctamente
       diferenciados en el hook.
-- [ ] `success` mapea el DTO PokeAPI con `types: [{ slot, type: {
-name, url } }]` y proyecto `types` a `string[]`.
+- [ ] `success` valida el contrato backend con `types: string[]` y
+      `createdAt` requerido.
 - [ ] `createdAt` se exige y se renderiza formateado en `es-PE`.
 - [ ] Mensajes de error humanos se aplican cuando el body no cumple
       el schema de error del backend.

@@ -20,10 +20,10 @@ Index of every ADR in this repo. Each ADR follows the
 
 ## Extensions (Phase 2B)
 
-| ID   | Title                                                     | Status             | Owner    |
-| ---- | --------------------------------------------------------- | ------------------ | -------- |
-| 0009 | Frontend contextual architecture (domain/application/ui)  | Accepted           | Frontend |
-| 0010 | Frontend HTTP flow (DTO PokéAPI, abort parcial, mensajes) | Accepted (revised) | Frontend |
+| ID   | Title                                                               | Status             | Owner    |
+| ---- | ------------------------------------------------------------------- | ------------------ | -------- |
+| 0009 | Frontend contextual architecture (domain/application/ui)            | Accepted           | Frontend |
+| 0010 | Frontend HTTP flow (contrato backend-only, abort parcial, mensajes) | Accepted (revised) | Frontend |
 
 `0000-contract-freezing` is the umbrella: it freezes the Phase 0 contract
 in `docs/CONTRACT.md` and binds the rest of the project to it. Any change

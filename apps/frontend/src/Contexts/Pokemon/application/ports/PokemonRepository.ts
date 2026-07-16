@@ -9,6 +9,5 @@ export interface PokemonRepositoryCreateOutcome {
 }
 
 export interface PokemonRepository {
-  findByName(name: PokemonName): Promise<Pokemon | null>;
   create(input: PokemonName): Promise<PokemonRepositoryCreateOutcome>;
 }

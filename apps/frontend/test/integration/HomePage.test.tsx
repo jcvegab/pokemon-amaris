@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { act, renderHook, screen, fireEvent, render } from '@testing-library/react';
+import { act, renderHook, screen, fireEvent, render, waitFor } from '@testing-library/react';
 import { useCreatePokemon } from '../../src/Contexts/Pokemon/ui/hooks/useCreatePokemon';
 import { PokemonCreator } from '../../src/Contexts/Pokemon/application/create/PokemonCreator';
 import { InMemoryPokemonRepository } from '../doubles/InMemoryPokemonRepository';
@@ -33,7 +33,7 @@ describe('useCreatePokemon', () => {
 
   it('captures errors into the error state', async () => {
     const repo = new InMemoryPokemonRepository();
-    repo.shouldFailFind = new PokemonError(POKEMON_ERROR_CODES.notFound, 'no encontrado', 404);
+    repo.shouldFailCreate = new PokemonError(POKEMON_ERROR_CODES.notFound, 'no encontrado', 404);
     const creator = new PokemonCreator(repo);
     const { result } = renderHook(() => useCreatePokemon(creator));
     act(() => result.current.setInput('pikachu'));
@@ -63,10 +63,13 @@ describe('useCreatePokemon', () => {
     const firstPromise = new Promise((resolve) => {
       resolveFirst = resolve;
     });
-    const findSpy = vi
-      .spyOn(repo, 'findByName')
-      .mockImplementationOnce(() => firstPromise as ReturnType<typeof repo.findByName>)
-      .mockImplementationOnce(async () => null);
+    const createSpy = vi
+      .spyOn(repo, 'create')
+      .mockImplementationOnce(() => firstPromise as ReturnType<typeof repo.create>)
+      .mockImplementationOnce(async (name) => {
+        const pokemon = await new InMemoryPokemonRepository().create(name);
+        return pokemon;
+      });
     const creator = new PokemonCreator(repo);
     const { result } = renderHook(() => useCreatePokemon(creator));
     act(() => result.current.setInput('pikachu'));
@@ -83,7 +86,7 @@ describe('useCreatePokemon', () => {
     } else {
       throw new Error('expected success');
     }
-    expect(findSpy).toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalled();
   });
 });
 
@@ -93,7 +96,8 @@ describe('HomePage with hook', () => {
     expect(screen.getByTestId('home-page')).toBeInTheDocument();
     fireEvent.change(screen.getByTestId('pokemon-input'), { target: { value: 'pikachu' } });
     fireEvent.click(screen.getByTestId('pokemon-submit'));
-    const banner = await screen.findByTestId('status-banner');
-    expect(banner.dataset['status']).toBe('success');
+    await waitFor(() => {
+      expect(screen.getByTestId('status-banner').dataset['status']).toBe('success');
+    });
   });
 });

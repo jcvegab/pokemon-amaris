@@ -9,13 +9,7 @@ import { Pokemon } from '../../src/Contexts/Pokemon/domain/model/Pokemon';
 
 export class InMemoryPokemonRepository implements PokemonRepository {
   public records = new Map<string, PokemonI>();
-  public shouldFailFind: PokemonError | null = null;
   public shouldFailCreate: PokemonError | null = null;
-
-  async findByName(name: PokemonName): Promise<PokemonI | null> {
-    if (this.shouldFailFind) throw this.shouldFailFind;
-    return this.records.get(name.value) ?? null;
-  }
 
   async create(name: PokemonName): Promise<PokemonRepositoryCreateOutcome> {
     if (this.shouldFailCreate) throw this.shouldFailCreate;

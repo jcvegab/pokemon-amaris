@@ -537,8 +537,8 @@ DATABASE_UNAVAILABLE`).
   `PokemonCatalog`) recibe `HttpService` por constructor y usa
   `firstValueFrom(http.get(...))`.
 - Mapeo: `PokeApiPokemonSchema` valida con `zod` los campos
-  persistidos y `PokeApiPokemonMapper.toSnapshot()` proyecta
-  `types: [{ slot, type: { name, url } }]` a `types: string[]`.
+  persistidos y `PokeApiPokemonMapper.toSnapshot()` proyecta los
+  recursos de tipo del proveedor a `types: string[]`.
 - Cancelación: la implementación actual no propaga `AbortSignal`
   al request HTTP. Si el cliente cancela, la request puede
   completarse o expirar por `timeout`. La cancelación real es
@@ -664,9 +664,8 @@ Reglas de validación:
 - `name`: string no vacío.
 - `height` / `weight`: enteros no negativos (decímetros /
   hectogramos en PokeAPI).
-- `types`: arreglo no vacío de `{ slot, type: { name, url } }`;
-  `PokeApiPokemonMapper.toSnapshot()` proyecta a `string[]` con
-  `type.name`.
+- `types`: arreglo no vacío de recursos de tipo del proveedor;
+  `PokeApiPokemonMapper.toSnapshot()` proyecta a `string[]`.
 - Cualquier campo adicional de PokeAPI (`sprites`, `moves`,
   `abilities`, `cries`, etc.) se descarta por Zod sin error.
 
