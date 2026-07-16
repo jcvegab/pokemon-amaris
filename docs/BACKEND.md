@@ -1028,12 +1028,10 @@ Multi-stage sobre `node:24-alpine`:
 @pokemon-amaris/backend... --prod` + `prisma:generate`. Crea el
    usuario no-root `app`. `EXPOSE 3000` y healthcheck
    `wget -qO- http://localhost:3000/health`.
-3. **CMD**: el runtime ejecuta primero
-   `node ./node_modules/prisma/build/index.js db push
---skip-generate --schema=./prisma/schema.prisma` y luego
-   `node dist/main.js`. Esto elimina la necesidad de un servicio
-   `db-init` separado; `docker-compose.yml` puede incluirlo como
-   paso explícito adicional, pero es opcional.
+3. **CMD**: el runtime ejecuta solo `node dist/main.js`. La
+   inicialización del esquema queda fuera del contenedor runtime y la
+   realiza `db-init` en `docker-compose.yml` con
+   `pnpm --filter @pokemon-amaris/backend prisma:push`.
 
 ## 15. Criterios de aceptación
 
@@ -1047,8 +1045,8 @@ Multi-stage sobre `node:24-alpine`:
       responde `200 OK` con el mismo `createdAt`.
 - [ ] Campos persistidos: `id`, `name`, `height`, `weight`,
       `types`, `createdAt`, `updatedAt`.
-- [ ] `prisma db push` inicializa el esquema (en `db-init` o en el
-      `CMD` del Dockerfile runtime).
+- [ ] `prisma db push` inicializa el esquema desde `db-init` antes de
+      arrancar el backend.
 - [ ] Errores HTTP coherentes con el contrato (400/404/502/503/500)
       y esquema `{ statusCode, code, message, timestamp, path }`.
 - [ ] `GET /health` retorna `200` si Terminus marca `database`

@@ -1,0 +1,83 @@
+sequenceDiagram
+    autonumber
+    actor User as Usuario
+    participant Browser as Browser
+    participant FE as React UI
+    participant Hook as useCreatePokemon
+    participant CreatorFE as Frontend PokemonCreator
+    participant ApiRepo as ApiPokemonRepository
+    participant Nginx as Nginx /api proxy
+    participant BE as NestJS PokemonPostController
+    participant CreatorBE as Backend PokemonCreator
+    participant Repo as PrismaPokemonRepository
+    participant DB as PostgreSQL
+    participant Catalog as PokeApiPokemonCatalog
+    participant API as PokeAPI
+
+    User->>Browser: Ingresa "Pikachu " y envía
+    Browser->>FE: submit form
+    FE->>FE: Valida input no vacío
+    FE->>Hook: submit("Pikachu ")
+    Hook->>CreatorFE: execute({ rawName })
+    CreatorFE->>CreatorFE: PokemonName trim + lowercase
+    CreatorFE->>ApiRepo: create(PokemonName("pikachu"))
+    ApiRepo->>Nginx: POST /api/pokemon { name: "pikachu" }
+    Nginx->>BE: POST /pokemon { name: "pikachu" }
+    BE->>CreatorBE: execute({ rawName: "pikachu" })
+    CreatorBE->>Repo: findByName("pikachu")
+
+    alt Registro existente
+        Repo->>DB: SELECT * FROM pokemons WHERE name = "pikachu"
+        DB-->>Repo: fila existente
+        Repo-->>CreatorBE: Pokemon
+        CreatorBE-->>BE: { pokemon, created: false }
+        BE-->>ApiRepo: 200 OK { id, name, height, weight, types, createdAt }
+    else DB vacía
+        DB-->>Repo: null
+        CreatorBE->>Catalog: search("pikachu")
+        Catalog->>API: GET /pokemon/pikachu
+        alt PokeAPI 404
+            API-->>Catalog: 404
+            Catalog-->>CreatorBE: PokemonNotFoundError
+            BE-->>ApiRepo: 404 POKEMON_NOT_FOUND
+        else Timeout / red / 5xx
+            API--xCatalog: falla o timeout
+            Catalog-->>CreatorBE: PokemonCatalogUnavailableError
+            BE-->>ApiRepo: 502 POKEAPI_UNAVAILABLE
+        else Payload inválido
+            API-->>Catalog: 200 con datos faltantes
+            Catalog-->>CreatorBE: PokemonCatalogBadResponseError
+            BE-->>ApiRepo: 502 POKEAPI_BAD_RESPONSE
+        else PokeAPI OK
+            API-->>Catalog: { id, name, height, weight, types }
+            Catalog->>Catalog: zod parse + mapper
+            Catalog-->>CreatorBE: PokemonSnapshot
+            CreatorBE->>Repo: save(pokemon)
+            Repo->>DB: INSERT pokemons
+            alt P2002 por carrera concurrente
+                DB-->>Repo: unique violation
+                Repo->>DB: SELECT * FROM pokemons WHERE name = "pikachu"
+                DB-->>Repo: fila existente
+                Repo-->>CreatorBE: { pokemon, created: false }
+                BE-->>ApiRepo: 200 OK
+            else Insert OK
+                DB-->>Repo: fila creada
+                Repo-->>CreatorBE: { pokemon, created: true }
+                BE-->>ApiRepo: 201 Created
+            else DB down en escritura
+                DB--xRepo: error de conexión
+                Repo-->>CreatorBE: PokemonPersistenceUnavailableError
+                BE-->>ApiRepo: 503 DATABASE_UNAVAILABLE
+            end
+        end
+    else DB down en lectura
+        DB--xRepo: error de conexión
+        Repo-->>CreatorBE: PokemonPersistenceUnavailableError
+        BE-->>ApiRepo: 503 DATABASE_UNAVAILABLE
+    end
+
+    ApiRepo->>ApiRepo: Valida respuesta pública con zod
+    ApiRepo-->>CreatorFE: { pokemon, created }
+    CreatorFE-->>Hook: resultado
+    Hook-->>FE: { status: success, pokemon }
+    FE-->>User: Banner + ficha Pokédex

@@ -1,0 +1,61 @@
+flowchart LR
+    subgraph Client[Cliente]
+        Browser[Browser]
+    end
+
+    subgraph Frontend[Frontend React 19]
+        UI["ui: HomePage, Form, Banner, Result, Presenter"]
+        Hook["useCreatePokemon + state discriminado"]
+        AppRoot["app: composition-root"]
+        FEApp["application: PokemonCreator + PokemonRepository port"]
+        FEDomain["domain: Pokemon, PokemonName, PokemonError"]
+        FEInfra["infrastructure/api: ApiPokemonRepository, schemas, mappers"]
+        FEShared["Shared: env + httpErrors"]
+    end
+
+    subgraph Runtime[Docker Runtime]
+        Nginx["Nginx frontend container\n/api/* proxy + /healthz"]
+        BEContainer["Backend container\nNode 24 Alpine"]
+        DBInit["db-init\nprisma db push"]
+    end
+
+    subgraph Backend[Backend NestJS 11]
+        Nest["Nest app + ValidationPipe + Swagger"]
+        Controller["PokemonPostController"]
+        BEApp["application: PokemonCreator + errors"]
+        BEDomain["domain: Pokemon, value objects, repository port"]
+        BEPoke["pokeapi adapter: PokeApiPokemonCatalog"]
+        BERepo["prisma adapter: PrismaPokemonRepository"]
+        BEShared["Shared: HttpErrorFilter + PrismaService"]
+        Health["health: HealthController + DatabaseHealthIndicator"]
+    end
+
+    subgraph External[Datos externos]
+        Postgres[(PostgreSQL 17)]
+        PokeAPI[(PokeAPI)]
+    end
+
+    Browser --> UI
+    UI --> Hook
+    UI --> AppRoot
+    AppRoot --> FEApp
+    Hook --> FEApp
+    FEApp --> FEDomain
+    FEApp --> FEInfra
+    FEInfra --> FEDomain
+    FEInfra --> FEShared
+    FEInfra -- "POST /api/pokemon" --> Nginx
+    Nginx -- "POST /pokemon" --> BEContainer
+    BEContainer --> Nest
+    Nest --> Controller
+    Nest --> Health
+    Controller --> BEApp
+    BEApp --> BEDomain
+    BEApp --> BEPoke
+    BEApp --> BERepo
+    BEPoke -- HTTPS --> PokeAPI
+    BERepo --> BEShared
+    BERepo -- SQL --> Postgres
+    Health --> BEShared
+    BEShared -- "SELECT 1" --> Postgres
+    DBInit -- "prisma db push" --> Postgres

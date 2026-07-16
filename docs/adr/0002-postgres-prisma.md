@@ -13,8 +13,9 @@ candidate can pick any database (relational or not).
 - PostgreSQL 17 (`postgres:17-alpine` in Compose).
 - Prisma 5.22 as the ORM; client generated at build time.
 - `prisma db push` for schema sync (no migrations, per
-  `DEFINITION.md`). The backend runtime also runs `prisma db push`
-  in its `CMD` (see ADR `0011`).
+  `DEFINITION.md`). In Docker Compose, the one-shot `db-init`
+  service owns schema initialization before the backend starts (see
+  ADR `0011`).
 - Schema: single `pokemons` table, `name` is `UNIQUE` to make
   concurrent writes recoverable.
 

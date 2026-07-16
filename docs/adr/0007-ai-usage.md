@@ -1,7 +1,9 @@
 # ADR 0007 — AI usage disclosure
 
-- **Status:** Accepted (stub; full content in Phase 2C)
-- **Source:** `DEFINITION.md` (suma puntos), `docs/EXECUTION.md` §6
+- **Status:** Accepted
+- **Date:** 2026-07-16
+- **Source:** `DEFINITION.md` (suma puntos), `docs/EXECUTION.md`,
+  implementation phases 0-6
 
 ## Context
 
@@ -11,18 +13,47 @@ were authored by the candidate.
 
 ## Decision
 
-- Every planning and source doc keeps the candidate's voice; AI is used
-  to draft and cross-check, not to write final prose.
-- `docs/adr/0007-ai-usage.md` (this file, expanded in Phase 6) lists:
-  - Which phases used AI tooling and how.
-  - Which decisions were AI-suggested and which were reviewed and
-    accepted or rejected.
-  - The candidate's own design and voice contributions.
-- The README links to this ADR for transparency.
+AI assistance was used as an engineering accelerator, not as an
+unreviewed authority.
+
+AI-assisted work:
+
+- Convert the challenge into phased execution docs and acceptance
+  criteria.
+- Draft and refine ADRs after decisions were selected.
+- Generate boilerplate for NestJS, React, Docker and GitHub Actions.
+- Search for consistency problems across docs and implementation.
+- Propose fixes during QA, especially around Docker healthchecks,
+  Prisma dependency injection and browser `fetch` binding.
+- Run local validation commands and summarize results.
+
+Human-reviewed decisions:
+
+- Use pnpm monorepo instead of two repos.
+- Use PostgreSQL + Prisma with `db push` instead of migrations.
+- Keep only `POST /pokemon` for creation and duplicate handling.
+- Resolve duplicate races in backend via `P2002` recovery.
+- Keep frontend contract backend-only: `types: string[]` and required
+  `createdAt`.
+- Use Docker Compose as the primary demo path.
+- Require coverage thresholds globally.
+
+Rejected or adjusted AI suggestions:
+
+- Avoided adding new routes for frontend duplicate precheck.
+- Avoided adding broad compatibility layers not required by the
+  challenge.
+- Moved DB initialization to explicit `db-init` instead of runtime
+  backend mutation.
+- Bound browser `fetch` explicitly after real browser behavior showed
+  context loss.
+
+The candidate remains responsible for final design, tradeoffs,
+verification and submitted prose.
 
 ## Consequences
 
-- Reviewers can tell which parts of the solution are mine vs. AI
-  assisted.
-- The discipline of writing ADRs forces every AI suggestion to pass
-  through a documented decision.
+- Reviewers can see where AI accelerated drafting and verification.
+- ADRs keep final decisions auditable.
+- Documentation may be more extensive than a minimal challenge
+  submission, but it records tradeoffs and validation clearly.

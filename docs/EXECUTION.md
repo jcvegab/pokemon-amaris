@@ -161,8 +161,9 @@ pnpm build   # pasa en vacío
 10. Swagger en `/docs` y `/docs-json`.
 11. Logger `nestjs-pino` con `requestId` y `pino-pretty` fuera
     de producción.
-12. Dockerfile multi-stage con `prisma db push` en `CMD` del
-    stage runtime (alternativa al servicio `db-init`).
+12. Dockerfile multi-stage; el stage runtime ejecuta solo
+    `node dist/main.js`. El servicio `db-init` inicializa Prisma en
+    Compose.
 13. Tests unitarios y de integración (Prisma y PokeAPI
     mockeados; los tokens `POKEMON_REPOSITORY` y
     `POKEMON_CATALOG` se sustituyen en tests de integración).
@@ -474,7 +475,8 @@ Sigue BACKEND.md, los contratos de Fase 0 y el ADR 0011:
   sin test:e2e. Convención *.test.ts.
 - Cobertura ≥ 85% lines/statements/functions, branches ≥ 80%.
 - Dockerfile multi-stage con node:24-alpine; el CMD del runtime
-  ejecuta prisma db push antes de node dist/main.js.
+  ejecuta solo node dist/main.js. db-init ejecuta prisma db push en
+  Compose.
 ```
 
 ### Frontend (Fase 2B)

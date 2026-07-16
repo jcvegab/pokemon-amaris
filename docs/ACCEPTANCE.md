@@ -57,7 +57,7 @@ nice.
 | 2A.14 | `GET /health` returns `503` with `database.status=down` when Prisma mock throws.                     | [ ]    |
 | 2A.15 | Swagger served at `/docs` and `/docs-json`.                                                          | [ ]    |
 | 2A.16 | `nestjs-pino` logger emits `requestId`; `pokemonName` and `outcome` on `POST /pokemon` success.      | [ ]    |
-| 2A.17 | Dockerfile multi-stage builds from `node:24-alpine`; runtime CMD runs `prisma db push` then app.     | [ ]    |
+| 2A.17 | Dockerfile multi-stage builds from `node:24-alpine`; runtime CMD runs only `node dist/main.js`.      | [ ]    |
 | 2A.18 | Backend exposes only `POST /pokemon` and `GET /health` (ADR `0011`).                                 | [ ]    |
 | 2A.19 | Single commit `feat(backend): implement pokemon service` on `feat/phase-2a-backend`.                 | [ ]    |
 
@@ -143,7 +143,7 @@ nice.
 | 6.1 | `README.md` covers description, architecture, stack, prereqs, Docker run, local run, endpoint, errors, tests, decisions, AI use, diagram. | [ ]    |
 | 6.2 | `docs/DIAGRAM.md` renders both Mermaid blocks on GitHub.                                                                                  | [ ]    |
 | 6.3 | `docs/diagrams/sequence.mmd` and `architecture.mmd` kept as the source of truth.                                                          | [ ]    |
-| 6.4 | ADRs `0001..0010` refined (any decisions taken since the stubs are recorded).                                                             | [ ]    |
+| 6.4 | ADRs `0001..0011` refined (any decisions taken since the stubs are recorded).                                                             | [ ]    |
 | 6.5 | `docs/adr/0007-ai-usage.md` filled with the actual record of AI use.                                                                      | [ ]    |
 | 6.6 | Single commit `docs: finalize project documentation` on `feat/phase-6-docs`.                                                              | [ ]    |
 

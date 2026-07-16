@@ -5,7 +5,8 @@
 - **Owner:** Backend
 - **Source:** `docs/BACKEND.md` §3, §6, §8, §10, §12;
   `docs/CONTRACT.md` §3; `docs/STRUCTURE.md` §2, §7;
-  `docs/adr/0003-arquitectura-hexagonal.md`
+  `docs/adr/0003-arquitectura-hexagonal.md`;
+  `docs/adr/0004-docker-compose.md`
 
 ## Context
 
@@ -124,13 +125,17 @@ plan documents for those points.
 
 ### Dockerfile and bootstrap
 
-- `apps/backend/Dockerfile` is multi-stage. The runtime stage
-  executes `prisma db push` from
-  `node ./node_modules/prisma/build/index.js` before launching
-  `node dist/main.js`. `docker-compose.yml` no longer needs a
-  `db-init` service to seed the schema (still recommended for
-  explicit visibility; both paths are equivalent).
-- The healthcheck uses `wget -qO- http://localhost:3000/health`.
+- `apps/backend/Dockerfile` is multi-stage. The builder stage runs
+  `pnpm install`, `prisma:generate` and `build`.
+- The runtime stage installs runtime dependencies plus Prisma CLI,
+  copies `apps/backend/prisma`, generates Prisma Client and starts
+  only `node dist/main.js`.
+- `docker-compose.yml` owns schema initialization through the
+  one-shot `db-init` service. `db-init` runs
+  `pnpm --filter @pokemon-amaris/backend prisma:push` and the
+  backend waits for `service_completed_successfully`.
+- The backend image no longer mutates the database in `CMD`.
+- The healthcheck uses `wget -qO- http://127.0.0.1:3000/health`.
 
 ### Tests
 
@@ -155,10 +160,8 @@ Positive:
 - The contract becomes a single source of truth again:
   `POST /pokemon` + `GET /health`, `types: string[]`,
   `createdAt` required, concurrency via `P2002` recovery.
-- The backend no longer needs a `db-init` Compose service to
-  work; the runtime image can push the schema itself. `db-init`
-  remains valid as a separate path and is left in the
-  `docker-compose.yml` example for explicitness.
+- `db-init` makes schema setup explicit in Compose and keeps backend
+  runtime startup focused on serving HTTP.
 
 Negative / costs:
 
@@ -166,10 +169,9 @@ Negative / costs:
   must read this ADR before trusting the plan documents.
 - TypeScript 6 target is not yet reached on the backend. A
   follow-up ADR will be needed if/when the backend upgrades.
-- `POST /pokemon` does not allow the frontend to skip the call
-  on duplicates via a real `GET`. The frontend fallback
-  (treat `404` as "not found, continue with POST") is documented
-  in ADR `0010`.
+- `POST /pokemon` does not allow the frontend to skip the call on
+  duplicates via a real `GET`; this is intentional and documented in
+  ADR `0010`.
 
 ## Change control
 

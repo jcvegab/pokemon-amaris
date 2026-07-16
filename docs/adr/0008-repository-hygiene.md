@@ -1,7 +1,8 @@
 # ADR 0008 — Repository hygiene
 
-- **Status:** Accepted (stub; full content in Phase 2C)
-- **Source:** `docs/CI.md` §9
+- **Status:** Accepted
+- **Date:** 2026-07-16
+- **Source:** `docs/CI.md` §9; `.github/**`
 
 ## Context
 
@@ -11,22 +12,33 @@ them, the repo rots.
 
 ## Decision
 
-- `.github/dependabot.yml` with three ecosystems: `npm` (root),
-  `github-actions`, `docker`. Weekly schedule, group minor/patch.
-- `.github/pull_request_template.md` with type, change list, how to
-  test, UI checklist, risks, and review checklist.
-- `.github/ISSUE_TEMPLATE/bug_report.md` and `feature_request.md`.
-- `.github/CODEOWNERS` mapping each area to a placeholder owner
-  (`@jcvegab`).
-- Branch protection on `master`: 1 approver, dismiss stale, require
-  `ci/backend`, `ci/frontend`, `ci/summary`, linear history, no force
-  pushes, no deletions.
-- Token permissions: `contents: read`, `pull-requests: write`,
-  `checks: write`, `security-events: read` (for CodeQL).
+- `.github/dependabot.yml` monitors:
+  - npm workspace dependencies from `/`.
+  - GitHub Actions from `/`.
+  - Dockerfiles in `/apps/backend` and `/apps/frontend`.
+- `.github/pull_request_template.md` asks for summary, validation
+  commands and notes about risks/follow-ups.
+- `.github/ISSUE_TEMPLATE/bug_report.md` captures reproduction steps,
+  environment and evidence.
+- `.github/ISSUE_TEMPLATE/feature_request.md` captures problem,
+  proposal and acceptance criteria.
+- `.github/CODEOWNERS` maps the repo, apps, docs, CI and Docker files
+  to `@jcvegab`.
+- Branch protection is documented in `.github/BRANCH_PROTECTION.md`
+  for `main`, not `master`.
+- Required status checks:
+  - `ci/backend`
+  - `ci/frontend`
+  - `ci/backend-openapi`
+  - `ci/summary`
+  - `docker/build-images`
+- Optional status check: `codeql/analyze`.
 
 ## Consequences
 
-- Dependabot PRs stay small and grouped.
-- PR template forces the author to think about rollback and UI impact.
-- Branch protection guarantees the contract is enforced by the
-  pipeline, not by the integrator's memory.
+- Dependency updates are scheduled and visible.
+- Pull requests have consistent validation notes.
+- Branch protection can be configured manually from the documented
+  checklist.
+- The repository stays simple: no custom GitHub App or release bot is
+  required for this challenge.

@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (revised)
 - **Source:** `docs/FRONTEND.md` §5.2, §6.3, §7, §8.1;
-  `docs/CONTRACT.md` §3.4, §3.5; `docs/DIAGRAM.md` §3
+  `docs/CONTRACT.md` §3.4, §3.5; `docs/DIAGRAM.md` §3;
+  `apps/frontend/src/Contexts/Pokemon/infrastructure/api/ApiPokemonRepository.ts`
 
 ## Context
 
@@ -23,6 +24,8 @@ funcionales que afectan al contrato observable del cliente.
   renderiza formateado en `es-PE` por `PokemonPresenter.formatDate`.
   El frontend no tolera ausencias: si la respuesta no trae
   `createdAt`, el mapper rechaza el payload como error de schema.
+- El hook expone `submit()` y usa el estado controlado `input` como
+  fuente del nombre enviado a `PokemonCreator.execute`.
 - El hook crea un `AbortController` por `submit` y descarta
   resultados tardíos comparando `controllerRef.current` y
   `isMountedRef.current`. El adaptador HTTP no recibe la señal:
@@ -35,6 +38,10 @@ funcionales que afectan al contrato observable del cliente.
   backend si está presente. `resolveCode` prioriza `code` del
   backend (con tabla de mapeo) y cae a fallback por `statusCode`
   cuando el body no cumple el schema.
+- `ApiPokemonRepository` usa `globalThis.fetch.bind(globalThis)`
+  cuando no se inyecta `fetchImpl`. Esto evita pérdida de contexto en
+  navegadores que lanzan `TypeError: Illegal invocation` cuando
+  `fetch` se guarda y ejecuta como método de instancia.
 
 ## Consequences
 
@@ -48,6 +55,9 @@ funcionales que afectan al contrato observable del cliente.
   mejora futura propagaría `AbortSignal` por
   `PokemonCreator.execute` → `PokemonRepository.create` →
   `ApiPokemonRepository.request`.
+- El submit depende del estado controlado del hook. Si se cambia el
+  flujo del formulario para pasar el valor del evento directamente,
+  debe actualizarse este ADR y la interfaz `UseCreatePokemonResult`.
 - Mensajes backend se muestran tal cual cuando cumplen el schema.
   El frontend no los sanitiza. Si el backend introduce PII o
   texto interno, se filtra al cliente. Se asume que el backend

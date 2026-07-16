@@ -126,7 +126,7 @@ services:
       db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/health || exit 1']
       interval: 10s
       timeout: 5s
       retries: 6
@@ -151,14 +151,13 @@ Notas:
 
 - `db-init` ejecuta `prisma db push` y termina. El backend solo
   arranca después de que el esquema exista.
-- El runtime del backend también ejecuta `prisma db push` en su
-  `CMD` (ver `apps/backend/Dockerfile` y ADR `0011`). Si
-  `db-init` se conserva, el push del runtime es idempotente;
-  eliminar `db-init` también es válido.
-- `frontend` expone 8080 hacia 80 interno (nginx).
-  - `nginx.conf` proxifica `/api/*` a `http://backend:3000/*` (no
-    solo `/api/pokemon`), expone `/healthz` para healthcheck de
-    Docker y sirve `dist/`. Ver ADR `0004`.
+- El runtime del backend solo ejecuta `node dist/main.js`; no muta la
+  base de datos en su `CMD` (ver `apps/backend/Dockerfile` y ADR
+  `0011`).
+- `frontend` expone 8080 hacia 80 interno (nginx). `nginx.conf`
+  proxifica `/api/*` a `http://backend:3000/*` (no solo
+  `/api/pokemon`), expone `/healthz` para healthcheck de Docker y
+  sirve `dist/`. Ver ADR `0004`.
 - `BACKEND_PORT` queda fuera del contrato. El host publica el
   contenedor en `3000` (backend) y `8080` (frontend) vía
   `docker-compose.yml`.
