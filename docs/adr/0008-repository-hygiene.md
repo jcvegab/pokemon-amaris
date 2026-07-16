@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
-- **Source:** `docs/CI.md` §9; `.github/**`
+- **Source:** `.github/**`
 
 ## Context
 

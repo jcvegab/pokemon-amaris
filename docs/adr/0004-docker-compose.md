@@ -1,8 +1,8 @@
 # ADR 0004 — Docker Compose for local + containerized delivery
 
 - **Status:** Accepted
-- **Source:** `docs/CI.md` §6, `docs/EXECUTION.md` §5 (Phase 3),
-  `docs/FRONTEND.md` §12, `docs/adr/0011-backend-as-built-alignment.md`
+- **Source:** `docker-compose.yml`; `apps/backend/Dockerfile`;
+  `apps/frontend/Dockerfile`; `apps/frontend/nginx.conf`; ADR `0011`
 
 ## Context
 

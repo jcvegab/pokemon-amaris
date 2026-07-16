@@ -1,3 +1,4 @@
-# Frontend (React + Vite) — see docs/FRONTEND.md and docs/CONTRACT.md
+# Frontend (React + Vite)
 
-Implementation lands in Phase 2B on branch `feat/phase-2b-frontend`.
+See the root `README.md`, `docs/DIAGRAM.md`, and ADRs under
+`docs/adr/` for the current implementation contract and decisions.

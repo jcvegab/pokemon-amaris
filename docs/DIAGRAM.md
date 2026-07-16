@@ -36,7 +36,7 @@ sequenceDiagram
     User->>Browser: Ingresa "Pikachu " y envía
     Browser->>FE: submit form
     FE->>FE: Valida input no vacío
-    FE->>Hook: submit("Pikachu ")
+    FE->>Hook: submit()
     Hook->>CreatorFE: execute({ rawName })
     CreatorFE->>CreatorFE: PokemonName trim + lowercase
     CreatorFE->>ApiRepo: create(PokemonName("pikachu"))

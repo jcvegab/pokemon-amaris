@@ -6,17 +6,17 @@ Index of every ADR in this repo. Each ADR follows the
 
 ## Initial list (Phase 0)
 
-| ID   | Title                            | Status   | Owner      |
-| ---- | -------------------------------- | -------- | ---------- |
-| 0000 | Contract freezing                | Accepted | Arch       |
-| 0001 | Monorepo with pnpm workspaces    | Accepted | Foundation |
-| 0002 | PostgreSQL + Prisma 5            | Accepted | Backend    |
-| 0003 | Hexagonal architecture (no CQRS) | Accepted | Backend    |
-| 0004 | Docker Compose for local + dev   | Accepted | Infra      |
-| 0005 | GitHub Actions CI                | Accepted | CI/CD      |
-| 0006 | Coverage threshold 85% / 80%     | Accepted | QA         |
-| 0007 | AI usage disclosure              | Accepted | Docs       |
-| 0008 | Repository hygiene               | Accepted | CI/CD      |
+| ID   | Title                            | Status     | Owner      |
+| ---- | -------------------------------- | ---------- | ---------- |
+| 0000 | Contract freezing                | Superseded | Arch       |
+| 0001 | Monorepo with pnpm workspaces    | Accepted   | Foundation |
+| 0002 | PostgreSQL + Prisma 5            | Accepted   | Backend    |
+| 0003 | Hexagonal architecture (no CQRS) | Accepted   | Backend    |
+| 0004 | Docker Compose for local + dev   | Accepted   | Infra      |
+| 0005 | GitHub Actions CI                | Accepted   | CI/CD      |
+| 0006 | Coverage threshold 85% / 80%     | Accepted   | QA         |
+| 0007 | AI usage disclosure              | Accepted   | Docs       |
+| 0008 | Repository hygiene               | Accepted   | CI/CD      |
 
 ## Extensions (Phase 2B)
 
@@ -25,9 +25,9 @@ Index of every ADR in this repo. Each ADR follows the
 | 0009 | Frontend contextual architecture (domain/application/ui)            | Accepted           | Frontend |
 | 0010 | Frontend HTTP flow (contrato backend-only, abort parcial, mensajes) | Accepted (revised) | Frontend |
 
-`0000-contract-freezing` is the umbrella: it freezes the Phase 0 contract
-in `docs/CONTRACT.md` and binds the rest of the project to it. Any change
-requires a new ADR.
+`0000-contract-freezing` is historical. The planning contract was used
+to guide implementation, then superseded by the final `README.md`,
+`docs/DIAGRAM.md`, and ADRs.
 
 `0009` and `0010` are post-Phase 0 extensions that document the
 implementation actually shipped in `apps/frontend/`.
@@ -38,12 +38,10 @@ implementation actually shipped in `apps/frontend/`.
 | ---- | -------------------------------------------------------------------------------- | -------- | ------- |
 | 0011 | Backend as-built alignment (Contexts layout, CommonJS, TS 5.7, `P2002` recovery) | Accepted | Backend |
 
-`0011` records the actual state of `apps/backend/` landed in Phase 2A
-and supersedes any plan document that contradicts it (`BACKEND.md`,
-`CONTRACT.md`, `STRUCTURE.md`, `DIAGRAM.md`, `EXECUTION.md`,
-`ACCEPTANCE.md`, plus ADRs `0001`, `0002`, `0003`, `0004`, `0006`,
-`0009`, `0010`). See `0011-backend-as-built-alignment.md` for the
-full delta and the change-control rules.
+`0011` records the actual state of `apps/backend/` and documents the
+runtime, layout, naming, error mapping and Docker bootstrap decisions.
+See `0011-backend-as-built-alignment.md` for the full delta and the
+change-control rules.
 
 ## Files
 
@@ -65,8 +63,9 @@ full delta and the change-control rules.
 - `Accepted`: vigente.
 - `Accepted (revised)`: vigente, con cambios respecto a su
   redacción original (registrados en el propio ADR).
-- `Proposed`, `Superseded by NNNN`, `Deprecated`: ver el cuerpo
-  del ADR.
+- `Superseded`: decisión histórica reemplazada por documentación o ADR
+  posterior.
+- `Proposed`, `Deprecated`: ver el cuerpo del ADR.
 
 ## Conventions
 
@@ -75,5 +74,5 @@ full delta and the change-control rules.
   `NNNN` (no gaps).
 - Status values: `Proposed`, `Accepted`, `Superseded by NNNN`,
   `Deprecated`.
-- Each ADR must link back to the source doc that triggered it
-  (`BACKEND.md`, `FRONTEND.md`, `CI.md`, `STRUCTURE.md`).
+- Each ADR must link to the current source of truth: code, config,
+  `README.md`, `docs/DIAGRAM.md`, or another ADR.

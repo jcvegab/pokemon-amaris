@@ -1,16 +1,16 @@
 # ADR 0010 — Frontend HTTP flow (contrato backend-only, abort parcial, mensajes)
 
 - **Status:** Accepted (revised)
-- **Source:** `docs/FRONTEND.md` §5.2, §6.3, §7, §8.1;
-  `docs/CONTRACT.md` §3.4, §3.5; `docs/DIAGRAM.md` §3;
+- **Source:** `README.md`; `docs/DIAGRAM.md`;
+  `apps/frontend/src/Contexts/Pokemon/ui/hooks/useCreatePokemon.ts`;
   `apps/frontend/src/Contexts/Pokemon/infrastructure/api/ApiPokemonRepository.ts`
 
 ## Context
 
-`docs/CONTRACT.md` original define `POST /pokemon` como única
-operación frontend y exige `types: string[]` en la respuesta. La
-implementación construida en Fase 2B introduce tres desviaciones
-funcionales que afectan al contrato observable del cliente.
+El contrato final define `POST /pokemon` como única operación frontend
+y exige `types: string[]` en la respuesta. La implementación construida
+en Fase 2B introduce decisiones funcionales que afectan al contrato
+observable del cliente.
 
 ## Decision
 
@@ -68,5 +68,5 @@ funcionales que afectan al contrato observable del cliente.
 - Añadir nuevas rutas backend o prechecks en el frontend requiere
   un nuevo ADR (propuesto `0012+`).
 - Cambios al schema de respuesta público o a las exclusiones de
-  cobertura del frontend se reflejan aquí y en `CONTRACT.md` en
-  la misma PR.
+  cobertura del frontend se reflejan aquí y en el `README.md` en la
+  misma PR.

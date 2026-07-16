@@ -1,7 +1,7 @@
 # ADR 0002 — PostgreSQL 17 + Prisma 5
 
 - **Status:** Accepted
-- **Source:** `docs/BACKEND.md` §2, §4; `docs/adr/0011-backend-as-built-alignment.md`
+- **Source:** `README.md`; `docker-compose.yml`; `apps/backend/prisma/schema.prisma`; ADR `0011`
 
 ## Context
 

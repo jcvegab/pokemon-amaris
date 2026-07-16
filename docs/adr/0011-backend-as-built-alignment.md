@@ -3,17 +3,14 @@
 - **Status:** Accepted
 - **Date:** 2026-07-16
 - **Owner:** Backend
-- **Source:** `docs/BACKEND.md` §3, §6, §8, §10, §12;
-  `docs/CONTRACT.md` §3; `docs/STRUCTURE.md` §2, §7;
-  `docs/adr/0003-arquitectura-hexagonal.md`;
-  `docs/adr/0004-docker-compose.md`
+- **Source:** `apps/backend/src/**`; `apps/backend/Dockerfile`;
+  `docker-compose.yml`; ADR `0003`; ADR `0004`
 
 ## Context
 
 Phase 2A landed with a layout and a set of identifiers that diverge
-from the plan frozen in `docs/CONTRACT.md` and from the original
-`BACKEND.md`. The documentation mix now contains three
-inconsistencies that block onboarding and review:
+from the original plan. The final documentation records three
+implementation facts that matter for onboarding and review:
 
 1. **Layout.** The plan describes `src/pokemon/` and `src/shared/`.
    The code lives under `src/Contexts/Pokemon/` and

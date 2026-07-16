@@ -1,8 +1,8 @@
 # ADR 0006 — Coverage threshold 85% / 80%
 
 - **Status:** Accepted
-- **Source:** `docs/CI.md` §8, `docs/EXECUTION.md` §10,
-  `docs/adr/0011-backend-as-built-alignment.md`
+- **Source:** `apps/backend/jest.config.cjs`;
+  `apps/frontend/vitest.config.ts`; `.github/workflows/ci.yml`; ADR `0011`
 
 ## Context
 

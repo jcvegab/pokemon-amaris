@@ -1,7 +1,7 @@
 # ADR 0001 — Monorepo with pnpm workspaces
 
 - **Status:** Accepted
-- **Source:** `docs/STRUCTURE.md` §2, §4, §5; `docs/adr/0011-backend-as-built-alignment.md`
+- **Source:** root workspace files; `README.md`; ADR `0011`
 
 ## Context
 

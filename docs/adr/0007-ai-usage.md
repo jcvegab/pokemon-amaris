@@ -2,8 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
-- **Source:** `DEFINITION.md` (suma puntos), `docs/EXECUTION.md`,
-  implementation phases 0-6
+- **Source:** `DEFINITION.md` (suma puntos); implementation phases 0-6
 
 ## Context
 

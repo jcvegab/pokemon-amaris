@@ -2,8 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
-- **Source:** `docs/CI.md` §4, §5; `docs/EXECUTION.md` §5 Fase 5;
-  `.github/workflows/ci.yml`; `.github/workflows/docker.yml`
+- **Source:** `.github/workflows/ci.yml`; `.github/workflows/docker.yml`;
+  `.github/workflows/codeql.yml`
 
 ## Context
 

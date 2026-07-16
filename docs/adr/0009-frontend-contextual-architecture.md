@@ -1,9 +1,8 @@
 # ADR 0009 — Arquitectura contextual frontend (domain / application / infrastructure / ui)
 
 - **Status:** Accepted
-- **Source:** `docs/FRONTEND.md` §2, §3, §5; `docs/CONTRACT.md` §3;
-  `docs/STRUCTURE.md` §7; `docs/adr/0003-arquitectura-hexagonal.md`;
-  `docs/adr/0011-backend-as-built-alignment.md`
+- **Source:** `apps/frontend/src/Contexts/Pokemon/**`; ADR `0003`;
+  ADR `0011`
 
 ## Context
 

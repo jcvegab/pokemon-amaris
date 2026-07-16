@@ -1,3 +1,4 @@
-# Backend (NestJS) — see docs/BACKEND.md and docs/CONTRACT.md
+# Backend (NestJS)
 
-Implementation lands in Phase 2A on branch `feat/phase-2a-backend`.
+See the root `README.md`, `docs/DIAGRAM.md`, and ADRs under
+`docs/adr/` for the current implementation contract and decisions.

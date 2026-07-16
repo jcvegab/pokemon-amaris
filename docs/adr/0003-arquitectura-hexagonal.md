@@ -1,7 +1,7 @@
 # ADR 0003 — Hexagonal architecture (no CQRS)
 
 - **Status:** Accepted
-- **Source:** `docs/BACKEND.md` §2, §3, §7, §8; ADR `0009`;
+- **Source:** `apps/backend/src/Contexts/Pokemon/**`; ADR `0009`;
   ADR `0011`
 
 ## Context
