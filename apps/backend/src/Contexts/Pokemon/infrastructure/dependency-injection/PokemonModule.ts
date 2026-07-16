@@ -1,4 +1,6 @@
 import { Module, type Provider } from '@nestjs/common';
+import { PrismaModule } from '../../../Shared/infrastructure/persistence/prisma/PrismaModule';
+import { PrismaService } from '../../../Shared/infrastructure/persistence/prisma/PrismaService';
 import { PokemonCreator } from '../../application/create/PokemonCreator';
 import { PokemonPostController } from '../http/PokemonPostController';
 import { PokeApiHttpModule } from '../pokeapi/PokeApiHttpModule';
@@ -8,7 +10,8 @@ import { POKEMON_CATALOG, POKEMON_CREATOR, POKEMON_REPOSITORY } from './PokemonT
 
 const pokemonRepositoryProvider: Provider = {
   provide: POKEMON_REPOSITORY,
-  useClass: PrismaPokemonRepository,
+  inject: [PrismaService],
+  useFactory: (prisma: PrismaService) => new PrismaPokemonRepository(prisma),
 };
 
 const pokemonCatalogProvider: Provider = {
@@ -23,13 +26,8 @@ const pokemonCreatorProvider: Provider = {
 };
 
 @Module({
-  imports: [PokeApiHttpModule],
+  imports: [PrismaModule, PokeApiHttpModule],
   controllers: [PokemonPostController],
-  providers: [
-    PrismaPokemonRepository,
-    pokemonRepositoryProvider,
-    pokemonCatalogProvider,
-    pokemonCreatorProvider,
-  ],
+  providers: [pokemonRepositoryProvider, pokemonCatalogProvider, pokemonCreatorProvider],
 })
 export class PokemonModule {}
