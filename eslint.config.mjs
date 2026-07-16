@@ -11,6 +11,7 @@ export default [
       '**/.pnpm-store/**',
       'apps/*/coverage/**',
       'apps/*/dist/**',
+      '**/*.cjs',
     ],
   },
   js.configs.recommended,
@@ -66,6 +67,12 @@ export default [
         vi: 'readonly',
         vitest: 'readonly',
       },
+    },
+  },
+  {
+    files: ['apps/backend/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
 ];
