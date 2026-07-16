@@ -44,6 +44,9 @@ jobs:
       - name: Lint backend
         run: pnpm --filter @pokemon-amaris/backend lint
 
+      - name: Generate Prisma client
+        run: pnpm --filter @pokemon-amaris/backend prisma:generate
+
       - name: Test backend with coverage
         run: pnpm --filter @pokemon-amaris/backend test:cov
         env:
