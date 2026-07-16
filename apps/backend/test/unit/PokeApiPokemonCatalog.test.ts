@@ -57,6 +57,24 @@ describe('PokeApiPokemonCatalog', () => {
     );
   });
 
+  it('logs invalid payloads when logging is enabled', async () => {
+    const previousLogLevel = process.env['LOG_LEVEL'];
+    process.env['LOG_LEVEL'] = 'info';
+    http.get.mockReturnValue(of({ data: { id: 'not-a-number' } }));
+
+    try {
+      await expect(catalog.search(new PokemonName('pikachu'))).rejects.toBeInstanceOf(
+        PokemonCatalogBadResponseError,
+      );
+    } finally {
+      if (previousLogLevel === undefined) {
+        delete process.env['LOG_LEVEL'];
+      } else {
+        process.env['LOG_LEVEL'] = previousLogLevel;
+      }
+    }
+  });
+
   it('throws PokemonCatalogBadResponseError when types is empty', async () => {
     http.get.mockReturnValue(of({ data: { id: 1, name: 'x', height: 1, weight: 1, types: [] } }));
     await expect(catalog.search(new PokemonName('x'))).rejects.toBeInstanceOf(
