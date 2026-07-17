@@ -56,14 +56,14 @@ jobs:
         run: pnpm --filter @pokemon-amaris/backend build
 
       - name: Upload backend coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: apps/backend/coverage
           if-no-files-found: error
 
       - name: Upload backend dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-dist
           path: apps/backend/dist
@@ -100,14 +100,14 @@ jobs:
         run: pnpm --filter @pokemon-amaris/frontend build
 
       - name: Upload frontend coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: apps/frontend/coverage
           if-no-files-found: error
 
       - name: Upload frontend dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: apps/frontend/dist
@@ -180,7 +180,7 @@ jobs:
         run: curl -fsS http://localhost:3000/docs-json -o openapi.json
 
       - name: Upload OpenAPI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-openapi
           path: openapi.json
@@ -195,7 +195,7 @@ jobs:
 
       - name: Upload backend OpenAPI logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-openapi-logs
           path: backend.log
