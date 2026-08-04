@@ -9,6 +9,7 @@ export default [
       '**/build/**',
       '**/coverage/**',
       '**/.pnpm-store/**',
+      '**/src/generated/**',
       'apps/*/coverage/**',
       'apps/*/dist/**',
       '**/*.cjs',

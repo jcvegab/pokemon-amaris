@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../../../../generated/prisma/client';
 import { Pokemon } from '../../../domain/model/Pokemon';
 
 export interface PrismaPokemonRecord {

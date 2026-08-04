@@ -14,7 +14,7 @@
     "test:watch": "node node_modules/jest/bin/jest.js --config jest.config.cjs --watch",
     "test:cov": "node node_modules/jest/bin/jest.js --config jest.config.cjs --coverage",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push --skip-generate"
+    "prisma:push": "prisma db push"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",
@@ -24,10 +24,12 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.6",
     "@nestjs/terminus": "^11.0.0",
-    "@prisma/client": "5.22.0",
+    "@prisma/adapter-pg": "7.9.1",
+    "@prisma/client": "7.9.1",
     "axios": "^1.19.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dotenv": "^17.2.3",
     "nestjs-pino": "^4.1.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
@@ -46,7 +48,8 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.2.1",
     "jest": "^30.4.2",
-    "prisma": "5.22.0",
+    "pg": "^8.16.3",
+    "prisma": "7.9.1",
     "supertest": "^7.0.0",
     "ts-jest": "^29.4.12",
     "ts-loader": "^9.5.1",

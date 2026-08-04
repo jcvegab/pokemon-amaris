@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '../../src/generated/prisma/client';
 import { PrismaPokemonRepository } from '../../src/Contexts/Pokemon/infrastructure/persistence/prisma/PrismaPokemonRepository';
 import { Pokemon } from '../../src/Contexts/Pokemon/domain/model/Pokemon';
 import { PokemonName } from '../../src/Contexts/Pokemon/domain/model/PokemonName';
@@ -95,7 +95,7 @@ describe('PrismaPokemonRepository', () => {
       const existingCreatedAt = new Date('2025-12-01T00:00:00.000Z');
       const conflictError = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
-        clientVersion: '5.22.0',
+        clientVersion: '7.9.1',
       });
       prisma.pokemon.create.mockRejectedValue(conflictError);
       prisma.pokemon.findUnique.mockResolvedValue({

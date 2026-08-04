@@ -11,7 +11,7 @@ candidate can pick any database (relational or not).
 ## Decision
 
 - PostgreSQL 17 (`postgres:17-alpine` in Compose).
-- Prisma 5.22 as the ORM; client generated at build time.
+- Prisma 7.9.1 as the ORM; client generated at build time with the PostgreSQL driver adapter.
 - `prisma db push` for schema sync (no migrations, per
   `DEFINITION.md`). In Docker Compose, the one-shot `db-init`
   service owns schema initialization before the backend starts (see

@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '../../../../../generated/prisma/client';
 import { type Pokemon } from '../../../domain/model/Pokemon';
 import { PokemonName } from '../../../domain/model/PokemonName';
 import {

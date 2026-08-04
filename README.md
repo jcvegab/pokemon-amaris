@@ -8,7 +8,7 @@ como monorepo `pnpm` con backend, frontend, PostgreSQL y Docker Compose.
 
 - Backend NestJS 11 con `POST /pokemon`, `GET /health` y Swagger en `/docs`.
 - Frontend React 19 con UI tipo Pokédex y proxy `/api/*` hacia backend.
-- PostgreSQL 17 + Prisma 5.22, sin migraciones; se usa `prisma db push`.
+- PostgreSQL 17 + Prisma 7.9.1, sin migraciones; se usa `prisma db push`.
 - Tests unitarios/integración con cobertura global mayor a 85%.
 - CI con GitHub Actions, artefactos de cobertura y OpenAPI.
 - Documentación de arquitectura, ADRs y diagramas Mermaid.
@@ -40,7 +40,7 @@ Ver diagramas completos en [`docs/DIAGRAM.md`](docs/DIAGRAM.md).
 | Monorepo     | pnpm 10 workspaces                           |
 | Runtime      | Node 24                                      |
 | Backend      | NestJS 11, TypeScript 5.7, CommonJS          |
-| ORM / DB     | Prisma 5.22, PostgreSQL 17                   |
+| ORM / DB     | Prisma 7.9.1, PostgreSQL 17                  |
 | Frontend     | React 19, Vite 5, TypeScript 6, Tailwind 4   |
 | Tests        | Jest, Vitest, Testing Library                |
 | Contenedores | Docker Compose, node:24-alpine, nginx:alpine |

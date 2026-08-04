@@ -17,6 +17,7 @@ COPY eslint.config.mjs ./
 COPY apps/backend/package.json apps/backend/
 COPY apps/backend/tsconfig.json apps/backend/tsconfig.build.json apps/backend/
 COPY apps/backend/nest-cli.json apps/backend/
+COPY apps/backend/prisma.config.ts apps/backend/
 COPY apps/backend/prisma apps/backend/prisma
 COPY apps/backend/src apps/backend/src
 
@@ -38,10 +39,8 @@ RUN corepack enable \
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/backend/package.json apps/backend/
-COPY apps/backend/prisma apps/backend/prisma
 
-RUN pnpm install --frozen-lockfile --filter @pokemon-amaris/backend... \
-    && pnpm --filter @pokemon-amaris/backend prisma:generate
+RUN pnpm install --prod --ignore-scripts --frozen-lockfile --filter @pokemon-amaris/backend...
 
 COPY --from=builder /app/apps/backend/dist apps/backend/dist
 

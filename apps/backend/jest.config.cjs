@@ -23,6 +23,7 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/index.ts',
     '!src/config/**',
+    '!src/generated/**',
     '!src/**/PokemonResponse.ts',
     '!src/**/PokemonTokens.ts',
   ],
