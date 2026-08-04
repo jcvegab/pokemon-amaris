@@ -6,14 +6,14 @@ const namedApiResourceSchema = z.object({
 });
 
 export const pokeApiPokemonSchema = z.object({
-  id: z.number().int().positive(),
+  id: z.int().positive(),
   name: z.string().min(1),
-  height: z.number().int().nonnegative(),
-  weight: z.number().int().nonnegative(),
+  height: z.int().nonnegative(),
+  weight: z.int().nonnegative(),
   types: z
     .array(
       z.object({
-        slot: z.number().int().positive(),
+        slot: z.int().positive(),
         type: namedApiResourceSchema,
       }),
     )
