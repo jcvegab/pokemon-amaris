@@ -6,13 +6,13 @@ const envSchema = z.object({
     .min(1, 'VITE_API_BASE_URL is required')
     .default('/api')
     .refine((value) => value.startsWith('/') || /^https?:\/\//.test(value), {
-      message: 'VITE_API_BASE_URL must start with "/" or be an absolute URL',
+      error: 'VITE_API_BASE_URL must start with "/" or be an absolute URL',
     }),
   VITE_API_TIMEOUT_MS: z.coerce
     .number()
     .int()
     .positive('VITE_API_TIMEOUT_MS must be a positive integer')
-    .default(8000),
+    .prefault(8000),
 });
 
 export type Env = z.infer<typeof envSchema>;
