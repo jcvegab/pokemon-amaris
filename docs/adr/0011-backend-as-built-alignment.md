@@ -6,6 +6,10 @@
 - **Source:** `apps/backend/src/**`; `apps/backend/Dockerfile`;
   `docker-compose.yml`; ADR `0003`; ADR `0004`
 
+The toolchain, test invocation and Docker runtime details below record the
+original implementation. Their current configuration is documented in
+[ADR 0012](0012-toolchain-compatibility.md).
+
 ## Context
 
 Phase 2A landed with a layout and a set of identifiers that diverge

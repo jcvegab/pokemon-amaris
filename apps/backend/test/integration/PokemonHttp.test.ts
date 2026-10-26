@@ -11,6 +11,11 @@ import {
 } from '../../src/Contexts/Pokemon/infrastructure/dependency-injection/PokemonTokens';
 import { Pokemon } from '../../src/Contexts/Pokemon/domain/model/Pokemon';
 import { PokemonName } from '../../src/Contexts/Pokemon/domain/model/PokemonName';
+import {
+  PokemonCatalogBadResponseError,
+  PokemonCatalogUnavailableError,
+  PokemonNotFoundError,
+} from '../../src/Contexts/Pokemon/application/errors/PokemonApplicationErrors';
 import { FakePokemonCatalog } from '../doubles/FakePokemonCatalog';
 import { InMemoryPokemonRepository } from '../doubles/InMemoryPokemonRepository';
 
@@ -163,8 +168,6 @@ describe('POST /pokemon (integration)', () => {
   });
 
   it('returns 404 when catalog returns not found', async () => {
-    const { PokemonNotFoundError } =
-      await import('../../src/Contexts/Pokemon/application/errors/PokemonApplicationErrors');
     catalog.shouldThrow = new PokemonNotFoundError('missing');
     const res = await request(app.getHttpServer())
       .post('/pokemon')
@@ -174,8 +177,6 @@ describe('POST /pokemon (integration)', () => {
   });
 
   it('returns 502 when catalog is unavailable', async () => {
-    const { PokemonCatalogUnavailableError } =
-      await import('../../src/Contexts/Pokemon/application/errors/PokemonApplicationErrors');
     catalog.shouldThrow = new PokemonCatalogUnavailableError('timeout');
     const res = await request(app.getHttpServer())
       .post('/pokemon')
@@ -185,8 +186,6 @@ describe('POST /pokemon (integration)', () => {
   });
 
   it('returns 502 when catalog returns a bad payload', async () => {
-    const { PokemonCatalogBadResponseError } =
-      await import('../../src/Contexts/Pokemon/application/errors/PokemonApplicationErrors');
     catalog.shouldThrow = new PokemonCatalogBadResponseError('bad shape');
     const res = await request(app.getHttpServer())
       .post('/pokemon')

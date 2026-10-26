@@ -6,6 +6,8 @@ module.exports = {
   roots: ['<rootDir>/src', '<rootDir>/test'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Resolve .js specifiers from generated Prisma code against TypeScript sources.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
     '^.+\\.ts$': [

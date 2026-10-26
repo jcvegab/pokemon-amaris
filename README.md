@@ -6,9 +6,9 @@ como monorepo `pnpm` con backend, frontend, PostgreSQL y Docker Compose.
 
 ## Qué Incluye
 
-- Backend NestJS 11 con `POST /pokemon`, `GET /health` y Swagger en `/docs`.
+- Backend NestJS 12 con `POST /pokemon`, `GET /health` y Swagger en `/docs`.
 - Frontend React 19 con UI tipo Pokédex y proxy `/api/*` hacia backend.
-- PostgreSQL 17 + Prisma 7.9.1, sin migraciones; se usa `prisma db push`.
+- PostgreSQL 17 + Prisma 7.10.1, sin migraciones; se usa `prisma db push`.
 - Tests unitarios/integración con cobertura global mayor a 85%.
 - CI con GitHub Actions, artefactos de cobertura y OpenAPI.
 - Documentación de arquitectura, ADRs y diagramas Mermaid.
@@ -37,19 +37,19 @@ Ver diagramas completos en [`docs/DIAGRAM.md`](docs/DIAGRAM.md).
 
 | Área         | Tecnología                                   |
 | ------------ | -------------------------------------------- |
-| Monorepo     | pnpm 10 workspaces                           |
-| Runtime      | Node 24                                      |
-| Backend      | NestJS 11, TypeScript 5.7, CommonJS          |
-| ORM / DB     | Prisma 7.9.1, PostgreSQL 17                  |
-| Frontend     | React 19, Vite 5, TypeScript 6, Tailwind 4   |
+| Monorepo     | pnpm 12.15.0 workspaces                      |
+| Runtime      | Node 24 (>=24.9)                             |
+| Backend      | NestJS 12, TypeScript 6, CommonJS (NodeNext) |
+| ORM / DB     | Prisma 7.10.1, PostgreSQL 17                 |
+| Frontend     | React 19, Vite 8, TypeScript 6, Tailwind 4   |
 | Tests        | Jest, Vitest, Testing Library                |
 | Contenedores | Docker Compose, node:24-alpine, nginx:alpine |
 | CI           | GitHub Actions, Dependabot, CodeQL opcional  |
 
 ## Prerrequisitos
 
-- Node.js `>=24`
-- pnpm `>=10`
+- Node.js `>=24.9`
+- pnpm `>=12.15`; la versión del proyecto está fijada en `packageManager`
 - Docker
 - Docker Compose v2
 
@@ -83,7 +83,7 @@ docker compose up --build
 Instala dependencias:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
 Levanta solo PostgreSQL:
@@ -107,6 +107,9 @@ Prepara Prisma:
 pnpm --filter @pokemon-amaris/backend prisma:generate
 pnpm --filter @pokemon-amaris/backend prisma:push
 ```
+
+Vuelve a ejecutar `prisma:generate` después de actualizar Prisma. El cliente se
+genera en `src/generated/prisma`, no se versiona y se excluye del formato.
 
 Levanta backend y frontend:
 
@@ -214,18 +217,23 @@ Ejemplo:
 Comandos globales:
 
 ```bash
+pnpm --filter @pokemon-amaris/backend prisma:generate
+pnpm typecheck
 pnpm lint
 pnpm test:cov
 pnpm build
+pnpm format:check
 ```
 
 Comandos por app:
 
 ```bash
+pnpm --filter @pokemon-amaris/backend typecheck
 pnpm --filter @pokemon-amaris/backend lint
 pnpm --filter @pokemon-amaris/backend test:cov
 pnpm --filter @pokemon-amaris/backend build
 
+pnpm --filter @pokemon-amaris/frontend typecheck
 pnpm --filter @pokemon-amaris/frontend lint
 pnpm --filter @pokemon-amaris/frontend test:cov
 pnpm --filter @pokemon-amaris/frontend build
@@ -240,17 +248,22 @@ Umbrales:
 | Functions  | 85%    |
 | Branches   | 80%    |
 
-Última validación local de Fase 4:
+Los scripts de Jest habilitan `--experimental-vm-modules` para cargar las
+dependencias ESM de NestJS 12 desde el backend CommonJS. Necesitan Node >=24.9.
+`typecheck` también comprueba las pruebas del backend, que Jest transpila de
+forma aislada, y las configuraciones de Vite/Vitest del frontend.
 
-- Backend: statements `96.07%`, branches `80.53%`, functions `93.84%`, lines `95.82%`.
-- Frontend: statements `92.8%`, branches `85.32%`, functions `92.45%`, lines `92.8%`.
+Última validación local tras actualizar dependencias:
+
+- Backend: 105 pruebas; statements `95.56%`, branches `81.02%`, functions `92.42%`, lines `95.28%`.
+- Frontend: 82 pruebas; statements `86.08%`, branches `80.55%`, functions `92.59%`, lines `87.4%`.
 
 ## CI/CD
 
 GitHub Actions ejecuta en cada PR y push a `main`:
 
-- `ci/backend`: install, lint, coverage, build, artefactos de coverage/dist.
-- `ci/frontend`: install, lint, coverage, build, artefactos de coverage/dist.
+- `ci/backend`: install, generación Prisma, typecheck, lint, coverage, build, artefactos de coverage/dist.
+- `ci/frontend`: install, typecheck, lint, coverage, build, artefactos de coverage/dist.
 - `ci/backend-openapi`: Postgres efímero, `prisma:push`, arranque de backend y publicación de `openapi.json`.
 - `ci/summary`: resumen de checks y cobertura en PR.
 - `docker/build-images`: buildx para imágenes backend/frontend.
@@ -273,6 +286,7 @@ ADRs principales:
 - [`0009` Arquitectura contextual frontend](docs/adr/0009-frontend-contextual-architecture.md)
 - [`0010` Flujo HTTP frontend](docs/adr/0010-frontend-http-flow.md)
 - [`0011` Backend as-built](docs/adr/0011-backend-as-built-alignment.md)
+- [`0012` Actualización de herramientas y compatibilidad](docs/adr/0012-toolchain-compatibility.md)
 
 Índice completo: [`docs/adr/README.md`](docs/adr/README.md).
 

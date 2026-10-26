@@ -3,6 +3,9 @@
 - **Status:** Accepted
 - **Source:** root workspace files; `README.md`; ADR `0011`
 
+Toolchain versions and TypeScript configuration are superseded by
+[ADR 0012](0012-toolchain-compatibility.md).
+
 ## Context
 
 Backend (NestJS) and frontend (React + Vite) share tooling, configs,

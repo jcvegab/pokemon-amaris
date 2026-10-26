@@ -7,7 +7,7 @@ import { Pokemon } from '../../src/Contexts/Pokemon/domain/model/Pokemon';
 class InMemoryPokemonRepository implements PokemonRepository {
   public records = new Map<string, Pokemon>();
 
-  constructor(initial: Array<{ id: number; name: string; types: string[]; createdAt: Date }> = []) {
+  constructor(initial: Array<Parameters<typeof Pokemon.rehydrate>[0]> = []) {
     for (const record of initial) {
       const pokemon = Pokemon.rehydrate(record);
       this.records.set(record.name, pokemon);

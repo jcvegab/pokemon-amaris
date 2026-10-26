@@ -134,7 +134,7 @@ flowchart LR
         DBInit["db-init\nprisma db push"]
     end
 
-    subgraph Backend[Backend NestJS 11]
+    subgraph Backend[Backend NestJS 12]
         Nest["Nest app + ValidationPipe + Swagger"]
         Controller["PokemonPostController"]
         BEApp["application: PokemonCreator + errors"]

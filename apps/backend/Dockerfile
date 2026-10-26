@@ -11,7 +11,7 @@ ENV CI=true \
 RUN corepack enable \
     && apk add --no-cache openssl
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY tsconfig.base.json ./
 COPY eslint.config.mjs ./
 COPY apps/backend/package.json apps/backend/
@@ -37,7 +37,7 @@ RUN corepack enable \
     && apk add --no-cache openssl wget \
     && addgroup -S app && adduser -S app -G app
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/backend/package.json apps/backend/
 
 RUN pnpm install --prod --ignore-scripts --frozen-lockfile --filter @pokemon-amaris/backend...

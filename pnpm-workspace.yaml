@@ -5,6 +5,7 @@ strictPeerDependencies: true
 shamefullyHoist: false
 nodeLinker: isolated
 allowBuilds:
+  '@parcel/watcher': true
   '@prisma/client': true
   '@prisma/engines': true
   '@scarf/scarf': true

@@ -76,7 +76,7 @@ describe('PokemonCreator', () => {
       save: jest.fn(),
     };
     const sut = new PokemonCreator(
-      brokenRepo as unknown as Parameters<typeof PokemonCreator>[0],
+      brokenRepo as unknown as ConstructorParameters<typeof PokemonCreator>[0],
       catalog,
     );
     await expect(sut.execute({ rawName: 'pikachu' })).rejects.toBeInstanceOf(
@@ -90,7 +90,7 @@ describe('PokemonCreator', () => {
       save: jest.fn().mockRejectedValue(new Error('write timeout')),
     };
     const sut = new PokemonCreator(
-      brokenRepo as unknown as Parameters<typeof PokemonCreator>[0],
+      brokenRepo as unknown as ConstructorParameters<typeof PokemonCreator>[0],
       catalog,
     );
     await expect(sut.execute({ rawName: 'pikachu' })).rejects.toBeInstanceOf(

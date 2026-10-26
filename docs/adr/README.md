@@ -43,6 +43,15 @@ runtime, layout, naming, error mapping and Docker bootstrap decisions.
 See `0011-backend-as-built-alignment.md` for the full delta and the
 change-control rules.
 
+## Toolchain compatibility
+
+| ID   | Title                                                              | Status   | Owner              |
+| ---- | ------------------------------------------------------------------ | -------- | ------------------ |
+| 0012 | [Updated toolchain compatibility](0012-toolchain-compatibility.md) | Accepted | Backend / Frontend |
+
+`0012` supersedes the earlier toolchain versions and runtime/test configuration
+details with pnpm 12, TypeScript 6, NestJS 12 and Prisma 7.10.1.
+
 ## Files
 
 - `0000-contract-freezing.md`

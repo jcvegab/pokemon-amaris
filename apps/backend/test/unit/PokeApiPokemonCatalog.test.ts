@@ -16,7 +16,7 @@ function makeHttp(): FakeHttp {
 }
 
 function axiosError(extra: Record<string, unknown>): Error & { isAxiosError: true } {
-  return Object.assign(new Error('Request failed'), { isAxiosError: true, ...extra });
+  return Object.assign(new Error('Request failed'), { ...extra, isAxiosError: true as const });
 }
 
 describe('PokeApiPokemonCatalog', () => {
